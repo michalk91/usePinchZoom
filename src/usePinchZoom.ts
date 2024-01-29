@@ -1,11 +1,34 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 
 interface Props {
+  /**
+   * How far you can drag the zoomed element out of scope. Default value: 50.
+   */
   boundaryResistance?: number;
+
+  /**
+   * Maximum zoom value. Default value: 3,
+   */
   maxZoom?: number;
+
+  /**
+   * Double tap sensivity. Default value: 300(ms),
+   */
   doubleTapSensivity?: number;
+
+  /**
+   * The minimum distance between fingers that allows for zooming with two fingers. Default value: 80(px).
+   */
   minDistBetweenFingers?: number;
+
+  /**
+   * You can set this to false if you want after touchend zoom return to the initial position. Default value: true.
+   */
   keepZoom?: boolean;
+
+  /**
+   * You can set this option to true if you want to disable double-tap zoom. Default value: false.
+   */
   disableDoubleTap?: boolean;
 }
 
@@ -614,7 +637,7 @@ function usePinchZoom({
     [zoomInfo, boundaryResistance, maxZoom, minDistBetweenFingers, zoomInfoRef]
   );
 
-  const onMouseUp = useCallback(() => {
+  const onTouchEnd = useCallback(() => {
     zoomInfoRef.higherThanViewport = isHigherThanViewport(
       zoomInfoRef.target as HTMLElement,
       zoomInfo.zoom
@@ -700,31 +723,94 @@ function usePinchZoom({
   );
 
   useEffect(() => {
-    document.addEventListener("mouseup", onMouseUp);
+    document.addEventListener("mouseup", onTouchEnd);
     document.addEventListener("mousemove", onMouseMove);
 
     return () => {
-      document.removeEventListener("mouseup", onMouseUp);
+      document.removeEventListener("mouseup", onTouchEnd);
       document.removeEventListener("mousemove", onMouseMove);
     };
-  }, [onMouseUp, onMouseMove]);
+  }, [onTouchEnd, onMouseMove]);
 
   return {
+    /**
+     * Function to handle "onMouseDown" event.
+     */
     onMouseDown,
+
+    /**
+     * Function to handle "onTouchStart" event.
+     */
     onDragStart,
+
+    /**
+     * Add this as a transform css property to your zoom element.
+     */
     pinchZoomTransitionX: zoomInfo.transitionX,
+
+    /**
+     * Add this as a transform css property to your zoom element.
+     */
     pinchZoomTransitionY: zoomInfo.transitionY,
+
+    /**
+     * Call this function to decrease the zoom.
+     */
     handleDecreaseZoom,
+
+    /**
+     * Call this function to increase the zoom.
+     */
     handleIncreaseZoom,
+
+    /**
+     * Call this function to reset the zoom/translation to its initial values.
+     */
     handleResetZoom,
+
+    /**
+     * Add this as css property to your zoom element.
+     */
     zoom: zoomInfo.zoom,
+
+    /**
+     * Changes the value to true when dragging.
+     */
     isDragging: zoomInfo.isDragging,
+
+    /**
+     * Changes the value to true when zooming with two fingers.
+     */
     isZooming: zoomInfo.isZooming,
+
+    /**
+     * Changes the value to true after double tap.
+     */
     wasDoubleTapped: zoomInfo.doubleTapped,
+
+    /**
+     * Function to handle "onTouchMove" event.
+     */
     onDraging,
-    onMouseUp,
-    zoomMouseWheel: onMouseWheel,
+
+    /**
+     * Function to handle "onTouchEnd" event.
+     */
+    onTouchEnd,
+
+    /**
+     * Function to handle "onWheel" event. You should add this if you want to be able to scroll the zoomed element using the mouse wheel.
+     */
+    onMouseWheel,
+
+    /**
+     * Call this function to enable zooming/dragging.
+     */
     enableDragAndZoom,
+
+    /**
+     * Call this function to disable zooming/dragging.
+     */
     disableDragAndZoom,
   };
 }
