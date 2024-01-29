@@ -13,9 +13,9 @@ export default function Zoom() {
     isDragging,
     zoom,
     onDraging,
-    onMouseUp,
+    onTouchEnd,
     isZooming,
-    zoomMouseWheel,
+    onMouseWheel,
   } = usePinchZoom({ maxZoom: 7 });
 
   const continerStyles: CSSProperties = {
@@ -65,9 +65,9 @@ export default function Zoom() {
           <img
             onMouseDown={onMouseDown}
             onTouchMove={onDraging}
-            onTouchEnd={onMouseUp}
+            onTouchEnd={onTouchEnd}
             onTouchStart={onDragStart}
-            onWheel={zoomMouseWheel}
+            onWheel={onMouseWheel}
             style={imgStyles}
             src="src/assets/zanzibar-2130811_1920.jpg"
           />
