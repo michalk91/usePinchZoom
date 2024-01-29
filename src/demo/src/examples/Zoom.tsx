@@ -69,7 +69,7 @@ export default function Zoom() {
             onTouchStart={onDragStart}
             onWheel={onMouseWheel}
             style={imgStyles}
-            src="src/assets/zanzibar-2130811_1920.jpg"
+            src="https://cdn.pixabay.com/photo/2017/03/09/20/56/zanzibar-2130811_1280.jpg"
           />
         </div>
       </div>
