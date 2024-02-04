@@ -50,6 +50,11 @@ const {
 />
 ```
 
+3. Remember to add the CSS property 'touch-action: none' to either the zoomed element or its parent.
+```javascript
+touch-action: 'none'
+```
+
 ## Usage details
 
 | Property               | Default | Type    | Details                                                                                   |
@@ -61,27 +66,27 @@ const {
 | keepZoom?              | true    | boolean | You can set this to false if you want after touchend zoom return to the initial position. |
 | disableDoubleTap?      | false   | boolean | You can set this option to true if you want to disable double-tap zoom.                   |
 
-### Functions and variables that hook returns
+### Functions and variables that return a hook.
 
-| Function                      | Usage                                                                                                                              |
-| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| onMouseDown (function)        | Function to handle "onMouseDown" event.                                                                                            |
-| onDragStart (function)        | Function to handle "onTouchStart" event.                                                                                           |
-| onDragging (function)         | Function to handle "onTouchMove" event.                                                                                            |
-| onTouchEnd (function)         | Function to handle "onTouchEnd" event.                                                                                             |
-| onTouchEnd (function)         | Function to handle "onTouchEnd" event.                                                                                             |
-| onMouseWheel (function)       | Function to handle "onWheel" event. You should add this if you want to be able to scroll the zoomed element using the mouse wheel. |
-| handleDecreaseZoom (function) | Call this function to decrease the zoom.                                                                                           |
-| handleIncreaseZoom (function) | Call this function to increase the zoom.                                                                                           |
-| handleResetZoom (function)    | Call this function to reset the zoom/translation to its initial values.                                                            |
-| enableDragAndZoom (function)  | Call this function to enable zooming/dragging.                                                                                     |
-| disableDragAndZoom (function) | Call this function to disable zooming/dragging.                                                                                    |
-| pinchZoomTransitionX          | Add this as a transform css property to your zoom element.                                                                         |
-| pinchZoomTransitionY          | Add this as a transform css property to your zoom element.                                                                         |
-| zoom                          | Add this as css property to your zoom element.                                                                                     |
-| isDragging                    | Changes the value to true when dragging.                                                                                           |
-| isZooming                     | Changes the value to true when zooming with two fingers.                                                                           |
-| wasDoubleTapped               | Changes the value to true after double tap.                                                                                        |
+| Function                        | Type           | Usage                                                                                                                              |
+| -----------------------------   | -------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| onMouseDown (function)          | function       | Function to handle "onMouseDown" event.                                                                                            |
+| onDragStart (function)          |  function      | Function to handle "onTouchStart" event.                                                                                           |
+| onDragging (function)           |   function     | Function to handle "onTouchMove" event.                                                                                            |
+| onTouchEnd (function)           |   function     | Function to handle "onTouchEnd" event.                                                                                             |
+| onTouchEnd (function)           | function       | Function to handle "onTouchEnd" event.                                                                                             |
+| onMouseWheel (function)         | function       | Function to handle "onWheel" event. You should add this if you want to be able to scroll the zoomed element using the mouse wheel. |
+| handleDecreaseZoom (function)   | function       | Call this function to decrease the zoom.                                                                                           |
+| handleIncreaseZoom (function)   |  function      | Call this function to increase the zoom.                                                                                           |
+| handleResetZoom (function)      | function       | Call this function to reset the zoom/translation to its initial values.                                                            |
+| enableDragAndZoom (function)    | function       | Call this function to enable zooming/dragging.                                                                                     |
+| disableDragAndZoom (function)   | function       | Call this function to disable zooming/dragging.                                                                                    |
+| pinchZoomTransitionX            | number         | Add this as a transform css property to your zoom element.                                                                         |
+| pinchZoomTransitionY            | number         | Add this as a transform css property to your zoom element.                                                                         |
+| zoom                            |  number        | Add this as css property to your zoom element.                                                                                     |
+| isDragging                      | boolean        | Changes the value to true when dragging.                                                                                           |
+| isZooming                       |  boolean       | Changes the value to true when zooming with two fingers.                                                                           |
+| wasDoubleTapped                 |  boolean       | Changes the value to true after double tap.                                                                                        |
 
 ## Example on Codesandbox
 
