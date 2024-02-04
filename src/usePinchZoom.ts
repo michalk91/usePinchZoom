@@ -64,8 +64,7 @@ interface CalculateOverMargin {
   marginLeft: number;
   marginRight: number;
   marginBottom: number;
-  zoom: number;
-  verticalCompensation: number;
+  target: HTMLElement;
 }
 
 interface GetDistanceBetweenFingers {
@@ -109,11 +108,11 @@ const getDistanceBetweenFingers = ({
 };
 
 const isWidderThanViewport = (target: HTMLElement, zoom: number) => {
-  return target.offsetWidth * zoom > window.innerWidth;
+  return target?.offsetWidth * zoom > window?.innerWidth;
 };
 
 const isHigherThanViewport = (target: HTMLElement, zoom: number) => {
-  return target.offsetHeight * zoom > window.innerHeight;
+  return target?.offsetHeight * zoom > window?.innerHeight;
 };
 
 const calculateOverMargin = ({
@@ -123,25 +122,28 @@ const calculateOverMargin = ({
   marginLeft,
   marginRight,
   marginBottom,
-  zoom,
-  verticalCompensation,
+  target,
 }: CalculateOverMargin) => {
+  const boundries = target?.getBoundingClientRect();
+
+  const left = boundries?.left;
+  const top = boundries?.top;
+
   const overMarginedY =
     transitionY !== 0 &&
-    (transitionY > marginTop ||
-      transitionY < -marginBottom + verticalCompensation / zoom);
+    (transitionY > marginTop || transitionY < -marginBottom);
 
   const overMarginedX =
     transitionX !== 0 &&
     (transitionX > marginLeft || transitionX < -marginRight);
 
   const overMarginY = overMarginedY
-    ? transitionY > 0
+    ? top > 0
       ? transitionY - marginTop
       : transitionY + marginBottom
     : 0;
   const overMarginX = overMarginedX
-    ? transitionX > 0
+    ? left > 0
       ? transitionX - marginLeft
       : transitionX + marginRight
     : 0;
@@ -150,15 +152,15 @@ const calculateOverMargin = ({
 };
 
 const calculateHorizontalOffset = (target: HTMLElement) => {
-  const offsetLeft = target.offsetLeft;
-  const offsetRight = window.innerWidth - (offsetLeft + target.offsetWidth);
+  const offsetLeft = target?.offsetLeft;
+  const offsetRight = window.innerWidth - (offsetLeft + target?.offsetWidth);
 
   return offsetRight - offsetLeft;
 };
 
 const calculateVerticalOffset = (target: HTMLElement) => {
-  const offsetTop = target.offsetTop;
-  const offsetBottom = window.innerHeight - (offsetTop + target.offsetHeight);
+  const offsetTop = target?.offsetTop;
+  const offsetBottom = window?.innerHeight - (offsetTop + target?.offsetHeight);
 
   return offsetBottom - offsetTop;
 };
@@ -268,6 +270,9 @@ function usePinchZoom({
   const handleIncreaseZoom = useCallback(() => {
     setZoomInfo((state: ZoomInfo) => ({
       ...state,
+      isDragging: false,
+      doubleTapped: false,
+      isZooming: false,
       zoom: getLimitedState({
         min: 1,
         max: maxZoom,
@@ -506,7 +511,6 @@ function usePinchZoom({
           setZoomInfo({
             ...zoomInfo,
             isDragging: true,
-            doubleTapped: false,
             isZooming: false,
             originX: startPointX,
             originY: startPointY,
@@ -666,13 +670,18 @@ function usePinchZoom({
     const { overMarginX, overMarginY } = calculateOverMargin({
       transitionX: zoomInfo.transitionX,
       transitionY: zoomInfo.transitionY,
-      zoom: zoomInfo.zoom,
+      target: zoomInfoRef.target as HTMLElement,
       marginTop: zoomInfoRef.marginTop,
       marginLeft: zoomInfoRef.marginLeft,
       marginBottom: zoomInfoRef.marginBottom,
       marginRight: zoomInfoRef.marginRight,
-      verticalCompensation: 0,
     });
+    if (zoomInfo.doubleTapped) {
+      setZoomInfo((state: ZoomInfo) => ({
+        ...state,
+        doubleTapped: false,
+      }));
+    }
 
     if (!zoomInfo.doubleTapped) {
       setZoomInfo((state: ZoomInfo) => ({
