@@ -30,6 +30,16 @@ interface Props {
    * You can set this option to true if you want to disable double-tap zoom. Default value: false.
    */
   disableDoubleTap?: boolean;
+
+  /**
+   * Defines how many times the increaseZoom function will need to be called to obtain the maximum zoom. For example, if you set 5, each function call will increase the element by 20 percent of its size. Default value: 4.
+   */
+  zoomFactor?: number;
+
+  /**
+   * Defines the element against which the boundaries will be set and zoom calculations will be performed. Remember that the element being enlarged must always be centered relative to its parent. Default value: "viewport".
+   */
+  relativeTo?: "viewport" | "parent" | "both";
 }
 
 interface ZoomInfo {
@@ -44,7 +54,7 @@ interface ZoomInfo {
   zoom: number;
 }
 
-interface GetLimitedState {
+interface GetLimitedValue {
   min: number;
   max: number;
   value: number;
@@ -53,6 +63,8 @@ interface GetLimitedState {
 interface GetDragBoundries {
   target: HTMLElement;
   zoom: number;
+  higherThanParent: boolean;
+  widderThanParent: boolean;
   widderThanViewport: boolean;
   higherThanViewport: boolean;
 }
@@ -64,7 +76,6 @@ interface CalculateOverMargin {
   marginLeft: number;
   marginRight: number;
   marginBottom: number;
-  target: HTMLElement;
 }
 
 interface GetDistanceBetweenFingers {
@@ -93,6 +104,10 @@ interface ZoomInfoRef {
   startZoomPosY: number;
   verticalOffset: number;
   horizontalOffset: number;
+  widderThanParent: boolean;
+  higherThanParent: boolean;
+  isHigher: boolean;
+  isWidder: boolean;
 }
 
 const getDistanceBetweenFingers = ({
@@ -115,6 +130,87 @@ const isHigherThanViewport = (target: HTMLElement, zoom: number) => {
   return target?.offsetHeight * zoom > window?.innerHeight;
 };
 
+const isWidderThanParent = (target: HTMLElement, zoom: number) => {
+  if (!target?.parentElement) return false;
+  else return target?.offsetWidth * zoom > target.parentElement.offsetWidth;
+};
+
+const isHigherThanParent = (target: HTMLElement, zoom: number) => {
+  if (!target?.parentElement) return false;
+  else return target?.offsetHeight * zoom > target.parentElement.offsetHeight;
+};
+
+const calculateHorizontalShift = (target: HTMLElement) => {
+  if (!target.parentElement) return 0;
+
+  const { left, right } = target.parentElement.getBoundingClientRect();
+
+  const offsetLeft = left;
+  const offsetRight = window.innerWidth - right;
+
+  return offsetRight - offsetLeft;
+};
+
+const calculateVerticalShift = (target: HTMLElement) => {
+  if (!target.parentElement) return 0;
+
+  const { top, bottom } = target.parentElement?.getBoundingClientRect();
+
+  const offsetTop = top;
+  const offsetBottom = window?.innerHeight - bottom;
+
+  return offsetBottom - offsetTop;
+};
+
+const getLimitedValue = ({ min, max, value }: GetLimitedValue) =>
+  Math.min(max, Math.max(value, min));
+
+const estimateOverflow = (
+  relativeTo: string,
+  target: HTMLElement,
+  zoom: number
+) => {
+  let higherThanParent = false,
+    widderThanParent = false,
+    higherThanViewport = false,
+    widderThanViewport = false,
+    isHigher = false,
+    isWidder = false;
+
+  if (relativeTo === "both") {
+    higherThanParent = isHigherThanParent(target, zoom);
+    widderThanParent = isWidderThanParent(target, zoom);
+
+    higherThanViewport = isHigherThanViewport(target, zoom);
+    widderThanViewport = isWidderThanViewport(target, zoom);
+
+    isWidder = widderThanParent || widderThanViewport;
+
+    isHigher = higherThanParent || higherThanViewport;
+  } else if (relativeTo === "viewport") {
+    higherThanViewport = isHigherThanViewport(target, zoom);
+    widderThanViewport = isWidderThanViewport(target, zoom);
+
+    isWidder = widderThanViewport;
+    isHigher = higherThanViewport;
+  } else if (relativeTo === "parent") {
+    higherThanParent = isHigherThanParent(target, zoom);
+    widderThanParent = isWidderThanParent(target, zoom);
+
+    isWidder = widderThanParent;
+    isHigher = higherThanParent;
+  }
+
+  return {
+    isHigher,
+    isWidder,
+    higherThanParent,
+    widderThanParent,
+    higherThanViewport,
+    widderThanViewport,
+  };
+};
+
 const calculateOverMargin = ({
   transitionX,
   transitionY,
@@ -122,13 +218,7 @@ const calculateOverMargin = ({
   marginLeft,
   marginRight,
   marginBottom,
-  target,
 }: CalculateOverMargin) => {
-  const boundries = target?.getBoundingClientRect();
-
-  const left = boundries?.left;
-  const top = boundries?.top;
-
   const overMarginedY =
     transitionY !== 0 &&
     (transitionY > marginTop || transitionY < -marginBottom);
@@ -138,12 +228,12 @@ const calculateOverMargin = ({
     (transitionX > marginLeft || transitionX < -marginRight);
 
   const overMarginY = overMarginedY
-    ? top > 0
+    ? transitionY > marginTop
       ? transitionY - marginTop
       : transitionY + marginBottom
     : 0;
   const overMarginX = overMarginedX
-    ? left > 0
+    ? transitionX > marginLeft
       ? transitionX - marginLeft
       : transitionX + marginRight
     : 0;
@@ -151,26 +241,11 @@ const calculateOverMargin = ({
   return { overMarginX, overMarginY };
 };
 
-const calculateHorizontalOffset = (target: HTMLElement) => {
-  const offsetLeft = target?.offsetLeft;
-  const offsetRight = window.innerWidth - (offsetLeft + target?.offsetWidth);
-
-  return offsetRight - offsetLeft;
-};
-
-const calculateVerticalOffset = (target: HTMLElement) => {
-  const offsetTop = target?.offsetTop;
-  const offsetBottom = window?.innerHeight - (offsetTop + target?.offsetHeight);
-
-  return offsetBottom - offsetTop;
-};
-
-const getLimitedState = ({ min, max, value }: GetLimitedState) =>
-  Math.min(max, Math.max(value, min));
-
 const getDragBoundries = ({
   target,
   zoom,
+  higherThanParent,
+  widderThanParent,
   widderThanViewport,
   higherThanViewport,
 }: GetDragBoundries) => {
@@ -179,29 +254,45 @@ const getDragBoundries = ({
     marginBottom = 0,
     marginRight = 0;
 
-  if (widderThanViewport) {
-    const offsetHorizontal = calculateHorizontalOffset(target);
+  if (!target) return { marginTop, marginLeft, marginBottom, marginRight };
+
+  if (widderThanParent && !widderThanViewport) {
+    if (!target.parentElement)
+      return { marginTop, marginLeft, marginBottom, marginRight };
+
+    const parentWidth = target?.parentElement?.offsetWidth;
+    marginLeft = (target?.offsetWidth * zoom - parentWidth) / 2 / zoom;
+    marginRight = (target?.offsetWidth * zoom - parentWidth) / 2 / zoom;
+  } else if (widderThanViewport) {
+    const offsetHorizontal = calculateHorizontalShift(target);
 
     marginLeft =
-      (target?.clientWidth * zoom - window.innerWidth + offsetHorizontal) /
+      (target?.offsetWidth * zoom - window.innerWidth + offsetHorizontal) /
       2 /
       zoom;
 
     marginRight =
-      (target?.clientWidth * zoom - window.innerWidth - offsetHorizontal) /
+      (target?.offsetWidth * zoom - window.innerWidth - offsetHorizontal) /
       2 /
       zoom;
   }
 
-  if (higherThanViewport) {
-    const offsetVertical = calculateVerticalOffset(target);
+  if (higherThanParent && !higherThanViewport) {
+    if (!target.parentElement)
+      return { marginTop, marginLeft, marginBottom, marginRight };
+
+    const parentHeight = target?.parentElement?.offsetHeight;
+    marginTop = (target?.offsetHeight * zoom - parentHeight) / 2 / zoom;
+    marginBottom = (target?.offsetHeight * zoom - parentHeight) / 2 / zoom;
+  } else if (higherThanViewport) {
+    const offsetVertical = calculateVerticalShift(target);
 
     marginTop =
-      (target?.clientHeight * zoom - window.innerHeight + offsetVertical) /
+      (target?.offsetHeight * zoom - window.innerHeight + offsetVertical) /
       2 /
       zoom;
     marginBottom =
-      (target?.clientHeight * zoom - window.innerHeight - offsetVertical) /
+      (target?.offsetHeight * zoom - window.innerHeight - offsetVertical) /
       2 /
       zoom;
   }
@@ -216,6 +307,8 @@ function usePinchZoom({
   minDistBetweenFingers = 80,
   keepZoom = true,
   disableDoubleTap = false,
+  relativeTo = "viewport",
+  zoomFactor = 4,
 }: Props) {
   const [zoomInfo, setZoomInfo] = useState({
     allowDragAndZoom: true,
@@ -242,6 +335,10 @@ function usePinchZoom({
     fingersStart: 0,
     widderThanViewport: false,
     higherThanViewport: false,
+    widderThanParent: false,
+    higherThanParent: false,
+    isHigher: false,
+    isWidder: false,
     startZoomPosX: 0,
     startZoomPosY: 0,
     verticalOffset: 0,
@@ -273,26 +370,26 @@ function usePinchZoom({
       isDragging: false,
       doubleTapped: false,
       isZooming: false,
-      zoom: getLimitedState({
+      zoom: getLimitedValue({
         min: 1,
         max: maxZoom,
-        value: state.zoom + maxZoom / 4,
+        value: state.zoom + maxZoom / zoomFactor,
       }),
     }));
-  }, [maxZoom]);
+  }, [maxZoom, zoomFactor]);
 
   const handleDecreaseZoom = useCallback(() => {
     setZoomInfo((state: ZoomInfo) => ({
       ...state,
-      zoom: getLimitedState({
+      zoom: getLimitedValue({
         min: 1,
         max: maxZoom,
-        value: state.zoom - maxZoom / 4,
+        value: state.zoom - maxZoom / zoomFactor,
       }),
       transitionX: 0,
       transitionY: 0,
     }));
-  }, [maxZoom]);
+  }, [maxZoom, zoomFactor]);
 
   const handleResetZoom = useCallback(() => {
     setZoomInfo({
@@ -337,19 +434,32 @@ function usePinchZoom({
 
       e.preventDefault();
 
-      zoomInfoRef.higherThanViewport = isHigherThanViewport(
+      const {
+        higherThanParent,
+        widderThanParent,
+        higherThanViewport,
+        widderThanViewport,
+        isHigher,
+        isWidder,
+      } = estimateOverflow(
+        relativeTo,
         e.currentTarget as HTMLElement,
         zoomInfo.zoom
       );
-      zoomInfoRef.widderThanViewport = isWidderThanViewport(
-        e.currentTarget as HTMLElement,
-        zoomInfo.zoom
-      );
+
+      zoomInfoRef.higherThanParent = higherThanParent;
+      zoomInfoRef.widderThanParent = widderThanParent;
+      zoomInfoRef.higherThanViewport = higherThanViewport;
+      zoomInfoRef.widderThanViewport = widderThanViewport;
+      zoomInfoRef.isHigher = isHigher;
+      zoomInfoRef.isWidder = isWidder;
 
       const { marginTop, marginLeft, marginBottom, marginRight } =
         getDragBoundries({
           target: e.currentTarget as HTMLElement,
           zoom: zoomInfo.zoom,
+          higherThanParent: zoomInfoRef.higherThanParent,
+          widderThanParent: zoomInfoRef.widderThanParent,
           higherThanViewport: zoomInfoRef.higherThanViewport,
           widderThanViewport: zoomInfoRef.widderThanViewport,
         });
@@ -380,23 +490,22 @@ function usePinchZoom({
       zoomInfo.isDragging,
       zoomInfo.transitionX,
       zoomInfo.transitionY,
+      relativeTo,
     ]
   );
 
   const onDragStart = useCallback(
     (e: React.TouchEvent) => {
-      if (e.target !== e.currentTarget) return;
-
       zoomInfoRef.target = e.currentTarget as HTMLElement;
 
-      zoomInfoRef.fingersStart = e.targetTouches.length;
+      zoomInfoRef.fingersStart = e.touches.length;
 
       zoomInfoRef.lastZoom = zoomInfo.zoom;
       zoomInfoRef.lastX = zoomInfo.transitionX;
       zoomInfoRef.lastY = zoomInfo.transitionY;
 
-      const verticalOffset = calculateVerticalOffset(zoomInfoRef.target);
-      const horizontalOffset = calculateHorizontalOffset(zoomInfoRef.target);
+      const verticalOffset = calculateVerticalShift(zoomInfoRef.target);
+      const horizontalOffset = calculateHorizontalShift(zoomInfoRef.target);
 
       zoomInfoRef.verticalOffset = verticalOffset;
       zoomInfoRef.horizontalOffset = horizontalOffset;
@@ -409,7 +518,7 @@ function usePinchZoom({
         const startMidPointY = (fingerOne.clientY + fingerTwo.clientY) / 2;
 
         const distance =
-          e.targetTouches.length === 2 &&
+          e.touches.length === 2 &&
           zoomInfoRef.fingersStart === 2 &&
           getDistanceBetweenFingers({
             fingerOne,
@@ -440,7 +549,11 @@ function usePinchZoom({
         const startPointX = fingerOne.clientX;
         const startPointY = fingerOne.clientY;
 
-        const doubleTapped = !disableDoubleTap && detectDoubleTap();
+        const doubleTapped =
+          keepZoom &&
+          !disableDoubleTap &&
+          e.touches.length < 2 &&
+          detectDoubleTap();
 
         if (doubleTapped) {
           const startZoomPosX =
@@ -451,11 +564,15 @@ function usePinchZoom({
           const dx = startZoomPosX - startZoomPosX / maxZoom;
           const dy = startZoomPosY - startZoomPosY / maxZoom;
 
-          const higherThanViewport = isHigherThanViewport(
-            e.currentTarget as HTMLElement,
-            maxZoom
-          );
-          const widderThanViewport = isWidderThanViewport(
+          const {
+            higherThanParent,
+            widderThanParent,
+            higherThanViewport,
+            widderThanViewport,
+            isHigher,
+            isWidder,
+          } = estimateOverflow(
+            relativeTo,
             e.currentTarget as HTMLElement,
             maxZoom
           );
@@ -464,8 +581,10 @@ function usePinchZoom({
             getDragBoundries({
               target: e.currentTarget as HTMLElement,
               zoom: maxZoom,
-              widderThanViewport,
-              higherThanViewport,
+              widderThanViewport: widderThanViewport,
+              higherThanViewport: higherThanViewport,
+              higherThanParent: higherThanParent,
+              widderThanParent: widderThanParent,
             });
 
           setZoomInfo({
@@ -474,23 +593,27 @@ function usePinchZoom({
             isDragging: false,
             isZooming: false,
             zoom: zoomInfo.zoom === 1 ? maxZoom : 1,
-            transitionX: getLimitedState({
-              max: widderThanViewport ? marginLeft : 0,
-              min: widderThanViewport ? -marginRight : 0,
+            transitionX: getLimitedValue({
+              max: isWidder ? marginLeft : 0,
+              min: isWidder ? -marginRight : 0,
               value: zoomInfo.zoom === 1 ? zoomInfo.transitionX + dx : 0,
             }),
-            transitionY: getLimitedState({
-              max: higherThanViewport ? marginTop : 0,
-              min: higherThanViewport ? -marginBottom : 0,
+            transitionY: getLimitedValue({
+              max: isHigher ? marginTop : 0,
+              min: isHigher ? -marginBottom : 0,
               value: zoomInfo.zoom === 1 ? zoomInfo.transitionY + dy : 0,
             }),
           });
         } else if (!doubleTapped) {
-          zoomInfoRef.higherThanViewport = isHigherThanViewport(
-            e.currentTarget as HTMLElement,
-            zoomInfo.zoom
-          );
-          zoomInfoRef.widderThanViewport = isWidderThanViewport(
+          const {
+            higherThanParent,
+            widderThanParent,
+            higherThanViewport,
+            widderThanViewport,
+            isHigher,
+            isWidder,
+          } = estimateOverflow(
+            relativeTo,
             e.currentTarget as HTMLElement,
             zoomInfo.zoom
           );
@@ -499,14 +622,18 @@ function usePinchZoom({
             getDragBoundries({
               target: e.currentTarget as HTMLElement,
               zoom: zoomInfo.zoom,
-              widderThanViewport: zoomInfoRef.widderThanViewport,
-              higherThanViewport: zoomInfoRef.higherThanViewport,
+              widderThanViewport: widderThanViewport,
+              higherThanViewport: higherThanViewport,
+              higherThanParent: higherThanParent,
+              widderThanParent: widderThanParent,
             });
 
           zoomInfoRef.marginTop = marginTop;
           zoomInfoRef.marginLeft = marginLeft;
           zoomInfoRef.marginBottom = marginBottom;
           zoomInfoRef.marginRight = marginRight;
+          zoomInfoRef.isHigher = isHigher;
+          zoomInfoRef.isWidder = isWidder;
 
           setZoomInfo({
             ...zoomInfo,
@@ -527,16 +654,16 @@ function usePinchZoom({
 
       setZoomInfo((state: ZoomInfo) => ({
         ...state,
-        transitionX: zoomInfoRef.widderThanViewport
-          ? getLimitedState({
+        transitionX: zoomInfoRef.isWidder
+          ? getLimitedValue({
               max: zoomInfoRef.marginLeft + boundaryResistance / state.zoom,
               min: -zoomInfoRef.marginRight - boundaryResistance / state.zoom,
               value: zoomInfoRef.lastX + e.clientX / state.zoom - state.originX,
             })
           : 0,
 
-        transitionY: zoomInfoRef.higherThanViewport
-          ? getLimitedState({
+        transitionY: zoomInfoRef.isHigher
+          ? getLimitedValue({
               max: zoomInfoRef.marginTop + boundaryResistance / state.zoom,
               min: -zoomInfoRef.marginBottom - boundaryResistance / state.zoom,
               value: zoomInfoRef.lastY + e.clientY / state.zoom - state.originY,
@@ -549,14 +676,14 @@ function usePinchZoom({
 
   const onDraging = useCallback(
     (e: React.TouchEvent) => {
-      if (e.target !== e.currentTarget) return;
+      if (e.touches.length > 2) return;
 
       if (zoomInfo.isZooming) {
         const fingerOne = e.touches[0];
         const fingerTwo = e.touches[1];
 
         const distance =
-          e.targetTouches.length === 2 &&
+          e.touches.length === 2 &&
           zoomInfoRef.fingersStart === 2 &&
           getDistanceBetweenFingers({
             fingerOne,
@@ -593,7 +720,7 @@ function usePinchZoom({
                 dy
               : state.transitionY,
 
-          zoom: getLimitedState({
+          zoom: getLimitedValue({
             min: 1,
             max: maxZoom,
             value:
@@ -608,11 +735,11 @@ function usePinchZoom({
 
         setZoomInfo((state: ZoomInfo) => ({
           ...state,
-          transitionX: getLimitedState({
-            min: zoomInfoRef.widderThanViewport
-              ? -zoomInfoRef.marginLeft - boundaryResistance / state.zoom
+          transitionX: getLimitedValue({
+            min: zoomInfoRef.isWidder
+              ? -zoomInfoRef.marginRight - boundaryResistance / state.zoom
               : 0,
-            max: zoomInfoRef.widderThanViewport
+            max: zoomInfoRef.isWidder
               ? zoomInfoRef.marginLeft + boundaryResistance / state.zoom
               : 0,
             value:
@@ -620,12 +747,12 @@ function usePinchZoom({
               (fingerOne.clientX - state.originX) / state.zoom,
           }),
 
-          transitionY: getLimitedState({
-            max: zoomInfoRef.higherThanViewport
+          transitionY: getLimitedValue({
+            max: zoomInfoRef.isHigher
               ? zoomInfoRef.marginTop + boundaryResistance / state.zoom
               : 0,
 
-            min: zoomInfoRef.higherThanViewport
+            min: zoomInfoRef.isHigher
               ? -zoomInfoRef.marginBottom - boundaryResistance / state.zoom
               : 0,
 
@@ -642,14 +769,23 @@ function usePinchZoom({
   );
 
   const onTouchEnd = useCallback(() => {
-    zoomInfoRef.higherThanViewport = isHigherThanViewport(
+    const {
+      higherThanParent,
+      widderThanParent,
+      higherThanViewport,
+      widderThanViewport,
+      isHigher,
+      isWidder,
+    } = estimateOverflow(
+      relativeTo,
       zoomInfoRef.target as HTMLElement,
       zoomInfo.zoom
     );
-    zoomInfoRef.widderThanViewport = isWidderThanViewport(
-      zoomInfoRef.target as HTMLElement,
-      zoomInfo.zoom
-    );
+
+    zoomInfoRef.higherThanParent = higherThanParent;
+    zoomInfoRef.widderThanParent = widderThanParent;
+    zoomInfoRef.higherThanViewport = higherThanViewport;
+    zoomInfoRef.widderThanViewport = widderThanViewport;
 
     if (zoomInfo.isZooming) {
       zoomInfoRef.startDistance = 0;
@@ -659,6 +795,8 @@ function usePinchZoom({
           zoom: zoomInfo.zoom,
           higherThanViewport: zoomInfoRef.higherThanViewport,
           widderThanViewport: zoomInfoRef.widderThanViewport,
+          higherThanParent: zoomInfoRef.higherThanParent,
+          widderThanParent: zoomInfoRef.widderThanParent,
         });
 
       zoomInfoRef.marginTop = marginTop;
@@ -670,12 +808,12 @@ function usePinchZoom({
     const { overMarginX, overMarginY } = calculateOverMargin({
       transitionX: zoomInfo.transitionX,
       transitionY: zoomInfo.transitionY,
-      target: zoomInfoRef.target as HTMLElement,
       marginTop: zoomInfoRef.marginTop,
       marginLeft: zoomInfoRef.marginLeft,
       marginBottom: zoomInfoRef.marginBottom,
       marginRight: zoomInfoRef.marginRight,
     });
+
     if (zoomInfo.doubleTapped) {
       setZoomInfo((state: ZoomInfo) => ({
         ...state,
@@ -689,38 +827,34 @@ function usePinchZoom({
         isDragging: false,
         isZooming: false,
         zoom: keepZoom ? state.zoom : zoomInfoRef.lastZoom,
-        transitionX:
-          zoomInfoRef.widderThanViewport && keepZoom
-            ? state.transitionX - overMarginX
-            : 0,
-        transitionY:
-          zoomInfoRef.higherThanViewport && keepZoom
-            ? state.transitionY - overMarginY
-            : 0,
+        transitionX: isWidder && keepZoom ? state.transitionX - overMarginX : 0,
+        transitionY: isHigher && keepZoom ? state.transitionY - overMarginY : 0,
       }));
     }
-  }, [zoomInfo, zoomInfoRef, keepZoom]);
+  }, [zoomInfo, zoomInfoRef, keepZoom, relativeTo]);
 
   const onMouseWheel = useCallback(
     (e: React.WheelEvent) => {
-      if (e.target !== e.currentTarget) return;
-
-      const higherThanViewport = isHigherThanViewport(
-        e.currentTarget as HTMLElement,
-        zoomInfo.zoom
-      );
-      if (!higherThanViewport) return;
+      const { higherThanParent, higherThanViewport, isHigher } =
+        estimateOverflow(
+          relativeTo,
+          e.currentTarget as HTMLElement,
+          zoomInfo.zoom
+        );
+      if (!isHigher) return;
 
       const { marginTop, marginBottom } = getDragBoundries({
         target: e.currentTarget as HTMLElement,
         zoom: zoomInfo.zoom,
         higherThanViewport,
-        widderThanViewport: true,
+        widderThanViewport: false,
+        widderThanParent: false,
+        higherThanParent,
       });
 
       setZoomInfo((state: ZoomInfo) => ({
         ...state,
-        transitionY: getLimitedState({
+        transitionY: getLimitedValue({
           max: marginTop,
           min: -marginBottom,
           value: state.transitionY - e.deltaY / state.zoom,
@@ -728,7 +862,7 @@ function usePinchZoom({
       }));
     },
 
-    [zoomInfo.zoom]
+    [zoomInfo.zoom, relativeTo]
   );
 
   useEffect(() => {
