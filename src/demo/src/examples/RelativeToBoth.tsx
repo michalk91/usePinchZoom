@@ -16,7 +16,7 @@ export default function RelativeToBoth() {
     onTouchEnd,
     isZooming,
     onMouseWheel,
-  } = usePinchZoom({ maxZoom: 7, relativeTo: "both" });
+  } = usePinchZoom({ maxZoom: 7, relativeTo: "both", zoomFactor: 20 });
 
   const containerStyles: CSSProperties = {
     display: "flex",
