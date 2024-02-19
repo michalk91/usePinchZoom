@@ -1,5 +1,5 @@
 import { CSSProperties } from "react";
-import usePinchZoom from "../../../usePinchZoom";
+import usePinchZoom from "use-pinch-zoom";
 
 export default function RelativeToViewport() {
   const {
