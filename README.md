@@ -23,7 +23,7 @@ npm i use-pinch-zoom
 1. Import the “usePinchZoom” hook:
 
 ```javascript
-import useModalTransition from "use-pinch-zoom";
+import usePinchZoom from "use-pinch-zoom";
 
 const {
   pinchZoomTransitionX,
@@ -80,17 +80,17 @@ touch-action: 'none'
 
 | Function                        | Type           | Usage                                                                                                                              |
 | -----------------------------   | -------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| onMouseDown (function)          | function       | Function to handle "onMouseDown" event.                                                                                            |
-| onDragStart (function)          |  function      | Function to handle "onTouchStart" event.                                                                                           |
-| onDragging (function)           |   function     | Function to handle "onTouchMove" event.                                                                                            |
-| onTouchEnd (function)           |   function     | Function to handle "onTouchEnd" event.                                                                                             |
-| onTouchEnd (function)           | function       | Function to handle "onTouchEnd" event.                                                                                             |
-| onMouseWheel (function)         | function       | Function to handle "onWheel" event. You should add this if you want to be able to scroll the zoomed element using the mouse wheel. |
-| handleDecreaseZoom (function)   | function       | Call this function to decrease the zoom.                                                                                           |
-| handleIncreaseZoom (function)   |  function      | Call this function to increase the zoom.                                                                                           |
-| handleResetZoom (function)      | function       | Call this function to reset the zoom/translation to its initial values.                                                            |
-| enableDragAndZoom (function)    | function       | Call this function to enable zooming/dragging.                                                                                     |
-| disableDragAndZoom (function)   | function       | Call this function to disable zooming/dragging.                                                                                    |
+| onMouseDown          | function       | Function to handle "onMouseDown" event.                                                                                            |
+| onDragStart           |  function      | Function to handle "onTouchStart" event.                                                                                           |
+| onDragging            |   function     | Function to handle "onTouchMove" event.                                                                                            |
+| onTouchEnd            |   function     | Function to handle "onTouchEnd" event.                                                                                             |
+| onTouchEnd           | function       | Function to handle "onTouchEnd" event.                                                                                             |
+| onMouseWheel         | function       | Function to handle "onWheel" event. You should add this if you want to be able to scroll the zoomed element using the mouse wheel. |
+| handleDecreaseZoom    | function       | Call this function to decrease the zoom.                                                                                           |
+| handleIncreaseZoom    |  function      | Call this function to increase the zoom.                                                                                           |
+| handleResetZoom       | function       | Call this function to reset the zoom/translation to its initial values.                                                            |
+| enableDragAndZoom     | function       | Call this function to enable zooming/dragging.                                                                                     |
+| disableDragAndZoom    | function       | Call this function to disable zooming/dragging.                                                                                    |
 | pinchZoomTransitionX            | number         | Add this as a transform css property to your zoom element.                                                                         |
 | pinchZoomTransitionY            | number         | Add this as a transform css property to your zoom element.                                                                         |
 | zoom                            |  number        | Add this as css property to your zoom element.                                                                                     |
