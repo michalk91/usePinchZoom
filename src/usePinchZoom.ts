@@ -379,6 +379,35 @@ function usePinchZoom({
   }, [maxZoom, zoomFactor]);
 
   const handleDecreaseZoom = useCallback(() => {
+    let marLeft = 0,
+      marRight = 0,
+      marTop = 0,
+      marBottom = 0;
+
+    if (zoomInfoRef.target) {
+      const {
+        higherThanParent,
+        widderThanParent,
+        higherThanViewport,
+        widderThanViewport,
+      } = estimateOverflow(relativeTo, zoomInfoRef.target, zoomInfo.zoom);
+
+      const { marginTop, marginLeft, marginBottom, marginRight } =
+        getDragBoundries({
+          target: zoomInfoRef.target,
+          zoom: zoomInfo.zoom - maxZoom / zoomFactor,
+          higherThanParent,
+          widderThanParent,
+          higherThanViewport,
+          widderThanViewport,
+        });
+
+      marTop = isFinite(marginTop) ? marginTop : 0;
+      marBottom = isFinite(marginBottom) ? marginBottom : 0;
+      marLeft = isFinite(marginLeft) ? marginLeft : 0;
+      marRight = isFinite(marginRight) ? marginRight : 0;
+    }
+
     setZoomInfo((state: ZoomInfo) => ({
       ...state,
       zoom: getLimitedValue({
@@ -386,10 +415,25 @@ function usePinchZoom({
         max: maxZoom,
         value: state.zoom - maxZoom / zoomFactor,
       }),
-      transitionX: 0,
-      transitionY: 0,
+      transitionX: getLimitedValue({
+        min: marRight > 0 ? -marRight : 0,
+        max: marLeft > 0 ? marLeft : 0,
+        value: state.transitionX,
+      }),
+      transitionY: getLimitedValue({
+        min: marBottom > 0 ? -marBottom : 0,
+        max: marTop > 0 ? marTop : 0,
+        value: state.transitionY,
+      }),
     }));
-  }, [maxZoom, zoomFactor]);
+  }, [
+    maxZoom,
+    zoomFactor,
+    zoomInfoRef.target,
+    estimateOverflow,
+    getDragBoundries,
+    zoomInfo.zoom,
+  ]);
 
   const handleResetZoom = useCallback(() => {
     setZoomInfo({
