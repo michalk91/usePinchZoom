@@ -44,6 +44,7 @@ export default function RelativeToBoth() {
     position: "relative",
     margin: "20px",
     aspectRatio: "1280/822",
+    maxHeight: "100%",
     touchAction: "none",
   };
 

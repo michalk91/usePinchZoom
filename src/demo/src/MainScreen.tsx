@@ -15,6 +15,7 @@ export default function MainScreen() {
   };
 
   const textStyles: CSSProperties = {
+    textAlign: "center",
     fontSize: "1.5rem",
     wordWrap: "break-word",
   };

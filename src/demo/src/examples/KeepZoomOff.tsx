@@ -31,6 +31,7 @@ export default function KeepZoomOff() {
     position: "relative",
     margin: "20px",
     aspectRatio: "1280/853",
+    maxHeight: "100%",
     touchAction: "none",
   };
 
