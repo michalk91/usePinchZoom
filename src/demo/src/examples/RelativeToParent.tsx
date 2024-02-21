@@ -19,13 +19,11 @@ export default function RelativeToParent() {
   } = usePinchZoom({ maxZoom: 7, relativeTo: "parent" });
 
   const continerStyles: CSSProperties = {
-    touchAction: " none",
     zIndex: "-1",
-    position: "fixed",
-    left: "0",
-    top: "0",
-    right: "0",
-    bottom: "0",
+    height: "100vh",
+    width: "100vw",
+    maxHeight: "100%",
+    maxWidth: "100%",
   };
 
   const navContainerStyles: CSSProperties = {
@@ -40,12 +38,13 @@ export default function RelativeToParent() {
   };
 
   const imgContainerStyles: CSSProperties = {
-    margin: "200px auto 0 auto",
+    margin: "180px auto 100px auto",
     border: "3px solid black",
     maxWidth: "80vw",
     maxHeight: "60vh",
     aspectRatio: "960/1280",
     overflow: "hidden",
+    touchAction: " none",
   };
 
   const imgStyles: CSSProperties = {

@@ -44,6 +44,7 @@ export default function RelativeToBoth() {
     position: "relative",
     margin: "20px",
     aspectRatio: "1280/822",
+    touchAction: "none",
   };
 
   const imgStyles: CSSProperties = {

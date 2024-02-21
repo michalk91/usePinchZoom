@@ -22,7 +22,8 @@ export default function KeepZoomOff() {
     flexDirection: "column",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: "20vh",
+    marginTop: "170px",
+    marginBottom: "100px",
     height: "70vh",
   };
 
@@ -30,6 +31,7 @@ export default function KeepZoomOff() {
     position: "relative",
     margin: "20px",
     aspectRatio: "1280/853",
+    touchAction: "none",
   };
 
   const imgStyles: CSSProperties = {
