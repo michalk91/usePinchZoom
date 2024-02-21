@@ -4,6 +4,7 @@ import RelativeToViewport from "./examples/RelativeToViewport";
 import RelativeToParent from "./examples/RelativeToParent";
 import RelativeToBoth from "./examples/RelativeToBoth";
 import KeepZoomOff from "./examples/KeepZoomOff";
+import MainScreen from "./MainScreen";
 
 function App() {
   const containerStyle: CSSProperties = {
@@ -42,6 +43,11 @@ function App() {
           <nav style={navStyle}>
             <ul style={ulStyle}>
               <li style={liStyle}>
+                <Link style={LinkStyle} to="/">
+                  mainScreen
+                </Link>
+              </li>
+              <li style={liStyle}>
                 <Link style={LinkStyle} to="/relativetoviewport">
                   relativeToViewport
                 </Link>
@@ -66,6 +72,7 @@ function App() {
         </div>
       </div>
       <Routes>
+        <Route path="/" element={<MainScreen />}></Route>
         <Route
           path="/relativetoviewport"
           element={<RelativeToViewport />}
