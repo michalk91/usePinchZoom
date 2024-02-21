@@ -471,8 +471,7 @@ function usePinchZoom({
 
   const onMouseDown = useCallback(
     (e: React.MouseEvent) => {
-      if (zoomInfo.zoom === 1 || zoomInfo.isZooming || zoomInfo.isDragging)
-        return;
+      if (zoomInfo.isZooming || zoomInfo.isDragging) return;
 
       zoomInfoRef.target = e.currentTarget as HTMLElement;
 
