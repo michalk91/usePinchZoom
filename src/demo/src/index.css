@@ -11,10 +11,6 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-:root div {
-  max-height: 100%;
-}
-
 a {
   font-weight: 500;
   color: black;
@@ -68,5 +64,10 @@ button:focus-visible {
   }
   button {
     background-color: #f9f9f9;
+  }
+}
+@media (min-width: 600px) {
+  body {
+    overflow: hidden;
   }
 }

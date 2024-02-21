@@ -38,6 +38,7 @@ export default function RelativeToParent() {
   };
 
   const imgContainerStyles: CSSProperties = {
+    boxSizing: "border-box",
     margin: "180px auto 100px auto",
     border: "3px solid black",
     maxWidth: "80vw",
