@@ -54,10 +54,10 @@ const {
 />
 ```
 
-3. Remember to add the CSS property 'touch-action: none' to either the zoomed element or its parent.
-```javascript
-touch-action: 'none'
-```
+3. By default, the function blocks the browser's native pinch zoom and scroll. However, you can turn it off by using the properties: "preventDefaultTouchBehavior" and "preventDefaultWheelBehavior".
+   
+
+ 
 4. In order for the function to calculate everything correctly (margins, etc.), the enlarged **element must always be centered relative to its parent or fill it completely.** If you do not want the element that you are zooming in on to be centered in relation to the viewport, you can still achieve this. Simply wrap your element in a container that will either center it or completely fill it. Set the property **"relativeTo"** to "parent" or "both". You can place the container anywhere on the screen (left-aligned, right-aligned) and everything should work as intended.
 
 &nbsp;
@@ -73,7 +73,10 @@ touch-action: 'none'
 | keepZoom?              | true    | boolean | You can set this to false if you want after touchend zoom return to the initial position. |
 | disableDoubleTap?      | false   | boolean | You can set this option to true if you want to disable double-tap zoom.                   |
 | zoomFactor?      | 4  | number | Defines how many times the increaseZoom function will need to be called to obtain the maximum zoom. For example, if you set 5, each function call will increase the element by 20 percent of its size. |
-| relativeTo?      | "viewport"| "viewport", "parent", "both" | Defines the element against which the boundaries will be set and zoom calculations will be performed. Remember that the element being enlarged must always be centered relative to its parent. Default value: "viewport". Specifies the element against which the boundaries will be set and the zoom calculations will be performed. It is important to keep in mind that the enlarged element should always be centered in relation to its parent. The default value is "viewport". You have the option to pass different values here, such as: "viewport", "parent", "both". If you choose "both", it means that the element will be positioned relative to the parent when it exceeds the parent's size, and relative to the viewport when it exceeds the viewport's size. This option combines the "parent" and "viewport" values and keeps track of both parent and viewport boundaries.                |
+| relativeTo?      | "viewport"| "viewport", "parent", "both" | Defines the element against which the boundaries will be set and zoom calculations will be performed. Remember that the element being enlarged must always be centered relative to its parent. Default value: "viewport". Specifies the element against which the boundaries will be set and the zoom calculations will be performed. It is important to keep in mind that the enlarged element should always be centered in relation to its parent. The default value is "viewport". You have the option to pass different values here, such as: "viewport", "parent", "both". If you choose "both", it means that the element will be positioned relative to the parent when it exceeds the parent's size, and relative to the viewport when it exceeds the viewport's size. This option combines the "parent" and "viewport" values and keeps track of both parent and viewport boundaries.     |
+| allowDragWhenZooming?     | true  | boolean | It defines whether you can move an element during pinch zoom.      | 
+| preventDefaultTouchBehavior?    | true  | boolean | Prevents the default pinch zoom and scroll functionality of the web browser when an element is enlarged with two fingers or when the zoom level is greater than 1.   |
+|  preventDefaultWheelBehavior?    | true  | boolean | Prevents the default scroll functionality of the web browser when the zoom level of an element is greater than 1.  |
 
 &nbsp;
 ### Functions and variables that return a hook.
