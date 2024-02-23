@@ -66,8 +66,4 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
-@media (min-width: 600px) {
-  body {
-    overflow: hidden;
-  }
-}
+
