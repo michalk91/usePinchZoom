@@ -13,9 +13,12 @@ export default function KeepZoomOff() {
     onTouchEnd,
     isZooming,
     onMouseWheel,
-  } = usePinchZoom({ maxZoom: 7, keepZoom: false });
+  } = usePinchZoom({
+    maxZoom: 7,
+    keepZoom: false,
+  });
 
-  const innerContainerStyles: CSSProperties = {
+  const containerStyles: CSSProperties = {
     display: "flex",
     width: "100vw",
     maxWidth: "100%",
@@ -23,8 +26,9 @@ export default function KeepZoomOff() {
     justifyContent: "center",
     alignItems: "center",
     marginTop: "170px",
-    marginBottom: "100px",
+    marginBottom: "200px",
     height: "70vh",
+    touchAction: "pan-y",
   };
 
   const imgContainerStyles: CSSProperties = {
@@ -32,7 +36,6 @@ export default function KeepZoomOff() {
     margin: "20px",
     aspectRatio: "1280/853",
     maxHeight: "100%",
-    touchAction: "none",
   };
 
   const imgStyles: CSSProperties = {
@@ -55,7 +58,7 @@ export default function KeepZoomOff() {
 
   return (
     <>
-      <section style={innerContainerStyles}>
+      <section style={containerStyles}>
         <div style={imgContainerStyles}>
           <img
             onMouseDown={onMouseDown}

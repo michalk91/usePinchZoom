@@ -16,7 +16,10 @@ export default function RelativeToParent() {
     onTouchEnd,
     isZooming,
     onMouseWheel,
-  } = usePinchZoom({ maxZoom: 7, relativeTo: "parent" });
+  } = usePinchZoom({
+    maxZoom: 7,
+    relativeTo: "parent",
+  });
 
   const continerStyles: CSSProperties = {
     zIndex: "-1",
@@ -44,7 +47,7 @@ export default function RelativeToParent() {
     maxHeight: "60vh",
     aspectRatio: "960/1280",
     overflow: "hidden",
-    touchAction: " none",
+    // touchAction: " none",
   };
 
   const imgStyles: CSSProperties = {
