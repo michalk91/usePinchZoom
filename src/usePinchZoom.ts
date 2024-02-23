@@ -40,6 +40,21 @@ interface Props {
    * Defines the element against which the boundaries will be set and zoom calculations will be performed. Remember that the element being enlarged must always be centered relative to its parent. Default value: "viewport".
    */
   relativeTo?: "viewport" | "parent" | "both";
+
+  /**
+   * It defines whether you can move an element during pinch zoom. Default value: true.
+   */
+  allowDragWhenZooming?: boolean;
+
+  /**
+   * Prevents the default pinch zoom and scroll functionality of the web browser when an element is enlarged with two fingers or when the zoom level is greater than 1. Default value: true.
+   */
+  preventDefaultTouchBehavior?: boolean;
+
+  /**
+   * Prevents the default scroll functionality of the web browser when the zoom level of an element is greater than 1. Default value: true.
+   */
+  preventDefaultWheelBehavior?: boolean;
 }
 
 interface ZoomInfo {
@@ -102,8 +117,6 @@ interface ZoomInfoRef {
   higherThanViewport: boolean;
   startZoomPosX: number;
   startZoomPosY: number;
-  verticalOffset: number;
-  horizontalOffset: number;
   widderThanParent: boolean;
   higherThanParent: boolean;
   isHigher: boolean;
@@ -309,6 +322,9 @@ function usePinchZoom({
   disableDoubleTap = false,
   relativeTo = "viewport",
   zoomFactor = 4,
+  allowDragWhenZooming = true,
+  preventDefaultTouchBehavior = true,
+  preventDefaultWheelBehavior = true,
 }: Props) {
   const [zoomInfo, setZoomInfo] = useState({
     allowDragAndZoom: true,
@@ -341,14 +357,26 @@ function usePinchZoom({
     isWidder: false,
     startZoomPosX: 0,
     startZoomPosY: 0,
-    verticalOffset: 0,
-    horizontalOffset: 0,
   }).current;
 
   const tapInfoRef = useRef<TapInfoRef>({
     lastTap: 0,
     timeout: undefined,
   }).current;
+
+  const prevDefaultPinchBehavior = useCallback(
+    (e: TouchEvent) => {
+      if (zoomInfo.isZooming || zoomInfo.zoom > 1) e.preventDefault();
+    },
+    [zoomInfo.isZooming, zoomInfo.zoom]
+  );
+
+  const prevDefaultWheelBehavior = useCallback(
+    (e: WheelEvent) => {
+      if (zoomInfo.zoom > 1) e.preventDefault();
+    },
+    [zoomInfo.zoom]
+  );
 
   const enableDragAndZoom = useCallback(() => {
     setZoomInfo((state: ZoomInfo) => ({
@@ -547,11 +575,8 @@ function usePinchZoom({
       zoomInfoRef.lastX = zoomInfo.transitionX;
       zoomInfoRef.lastY = zoomInfo.transitionY;
 
-      const verticalOffset = calculateVerticalShift(zoomInfoRef.target);
-      const horizontalOffset = calculateHorizontalShift(zoomInfoRef.target);
-
-      zoomInfoRef.verticalOffset = verticalOffset;
-      zoomInfoRef.horizontalOffset = horizontalOffset;
+      const verticalShift = calculateVerticalShift(zoomInfoRef.target);
+      const horizontalShift = calculateHorizontalShift(zoomInfoRef.target);
 
       if (zoomInfoRef.fingersStart === 2) {
         const fingerOne = e.touches[0];
@@ -569,11 +594,11 @@ function usePinchZoom({
           });
 
         zoomInfoRef.startZoomPosX =
-          (window.innerWidth / 2 - startMidPointX - horizontalOffset / 2) *
+          (window.innerWidth / 2 - startMidPointX - horizontalShift / 2) *
           zoomInfoRef.lastZoom;
 
         zoomInfoRef.startZoomPosY =
-          (window.innerHeight / 2 - startMidPointY - verticalOffset / 2) *
+          (window.innerHeight / 2 - startMidPointY - verticalShift / 2) *
           zoomInfoRef.lastZoom;
 
         zoomInfoRef.startDistance = distance ? distance : 0;
@@ -600,9 +625,9 @@ function usePinchZoom({
 
         if (doubleTapped) {
           const startZoomPosX =
-            window.innerWidth / 2 - startPointX - horizontalOffset / 2;
+            window.innerWidth / 2 - startPointX - horizontalShift / 2;
           const startZoomPosY =
-            window.innerHeight / 2 - startPointY - verticalOffset / 2;
+            window.innerHeight / 2 - startPointY - verticalShift / 2;
 
           const dx = startZoomPosX - startZoomPosX / maxZoom;
           const dy = startZoomPosY - startZoomPosY / maxZoom;
@@ -752,15 +777,19 @@ function usePinchZoom({
           ...state,
           transitionX:
             zoomInfoRef.startDistance > minDistBetweenFingers
-              ? zoomInfoRef.lastX +
-                (endMidPointX - state.originX) / state.zoom +
-                dx
+              ? allowDragWhenZooming
+                ? zoomInfoRef.lastX +
+                  (endMidPointX - state.originX) / state.zoom +
+                  dx
+                : zoomInfoRef.lastX + dx
               : state.transitionX,
           transitionY:
             zoomInfoRef.startDistance > minDistBetweenFingers
-              ? zoomInfoRef.lastY +
-                (endMidPointY - state.originY) / state.zoom +
-                dy
+              ? allowDragWhenZooming
+                ? zoomInfoRef.lastY +
+                  (endMidPointY - state.originY) / state.zoom +
+                  dy
+                : zoomInfoRef.lastY + dy
               : state.transitionY,
 
           zoom: getLimitedValue({
@@ -808,7 +837,14 @@ function usePinchZoom({
         }));
       }
     },
-    [zoomInfo, boundaryResistance, maxZoom, minDistBetweenFingers, zoomInfoRef]
+    [
+      zoomInfo,
+      boundaryResistance,
+      maxZoom,
+      minDistBetweenFingers,
+      zoomInfoRef,
+      allowDragWhenZooming,
+    ]
   );
 
   const onTouchEnd = useCallback(() => {
@@ -911,12 +947,35 @@ function usePinchZoom({
   useEffect(() => {
     document.addEventListener("mouseup", onTouchEnd);
     document.addEventListener("mousemove", onMouseMove);
+    if (preventDefaultTouchBehavior) {
+      document.addEventListener("touchmove", prevDefaultPinchBehavior, {
+        passive: false,
+      });
+    }
+    if (preventDefaultWheelBehavior) {
+      document.addEventListener("wheel", prevDefaultWheelBehavior, {
+        passive: false,
+      });
+    }
 
     return () => {
       document.removeEventListener("mouseup", onTouchEnd);
       document.removeEventListener("mousemove", onMouseMove);
+      if (preventDefaultTouchBehavior) {
+        document.removeEventListener("touchmove", prevDefaultPinchBehavior);
+      }
+      if (preventDefaultWheelBehavior) {
+        document.removeEventListener("wheel", prevDefaultWheelBehavior);
+      }
     };
-  }, [onTouchEnd, onMouseMove]);
+  }, [
+    onTouchEnd,
+    onMouseMove,
+    prevDefaultPinchBehavior,
+    preventDefaultTouchBehavior,
+    prevDefaultWheelBehavior,
+    preventDefaultWheelBehavior,
+  ]);
 
   return {
     /**
