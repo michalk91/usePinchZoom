@@ -13,7 +13,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.22.1",
-    "use-pinch-zoom": "^1.0.7"
+    "use-pinch-zoom": "^1.0.8"
   },
   "devDependencies": {
     "@types/react": "^18.2.43",
