@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from "react";
 
 interface Props {
   /**
-   * How far you can drag the zoomed element out of scope. Default value: 50.
+   * How far you can drag the zoomed element out of scope. Default value: 50(px).
    */
   boundaryResistance?: number;
 
@@ -112,15 +112,11 @@ interface ZoomInfoRef {
   marginBottom: number;
   marginLeft: number;
   marginRight: number;
-  fingersStart: number;
-  widderThanViewport: boolean;
-  higherThanViewport: boolean;
   startZoomPosX: number;
   startZoomPosY: number;
-  widderThanParent: boolean;
-  higherThanParent: boolean;
   isHigher: boolean;
   isWidder: boolean;
+  scrolled: boolean;
 }
 
 const getDistanceBetweenFingers = ({
@@ -277,15 +273,15 @@ const getDragBoundries = ({
     marginLeft = (target?.offsetWidth * zoom - parentWidth) / 2 / zoom;
     marginRight = (target?.offsetWidth * zoom - parentWidth) / 2 / zoom;
   } else if (widderThanViewport) {
-    const offsetHorizontal = calculateHorizontalShift(target);
+    const horizontalShift = calculateHorizontalShift(target);
 
     marginLeft =
-      (target?.offsetWidth * zoom - window.innerWidth + offsetHorizontal) /
+      (target?.offsetWidth * zoom - window.innerWidth + horizontalShift) /
       2 /
       zoom;
 
     marginRight =
-      (target?.offsetWidth * zoom - window.innerWidth - offsetHorizontal) /
+      (target?.offsetWidth * zoom - window.innerWidth - horizontalShift) /
       2 /
       zoom;
   }
@@ -298,14 +294,14 @@ const getDragBoundries = ({
     marginTop = (target?.offsetHeight * zoom - parentHeight) / 2 / zoom;
     marginBottom = (target?.offsetHeight * zoom - parentHeight) / 2 / zoom;
   } else if (higherThanViewport) {
-    const offsetVertical = calculateVerticalShift(target);
+    const verticalShift = calculateVerticalShift(target);
 
     marginTop =
-      (target?.offsetHeight * zoom - window.innerHeight + offsetVertical) /
+      (target?.offsetHeight * zoom - window.innerHeight + verticalShift) /
       2 /
       zoom;
     marginBottom =
-      (target?.offsetHeight * zoom - window.innerHeight - offsetVertical) /
+      (target?.offsetHeight * zoom - window.innerHeight - verticalShift) /
       2 /
       zoom;
   }
@@ -326,7 +322,7 @@ function usePinchZoom({
   preventDefaultTouchBehavior = true,
   preventDefaultWheelBehavior = true,
 }: Props) {
-  const [zoomInfo, setZoomInfo] = useState({
+  const [zoomInfo, setZoomInfo] = useState<ZoomInfo>({
     allowDragAndZoom: true,
     isDragging: false,
     isZooming: false,
@@ -348,15 +344,11 @@ function usePinchZoom({
     marginBottom: 0,
     marginLeft: 0,
     marginRight: 0,
-    fingersStart: 0,
-    widderThanViewport: false,
-    higherThanViewport: false,
-    widderThanParent: false,
-    higherThanParent: false,
     isHigher: false,
     isWidder: false,
     startZoomPosX: 0,
     startZoomPosY: 0,
+    scrolled: false,
   }).current;
 
   const tapInfoRef = useRef<TapInfoRef>({
@@ -379,17 +371,17 @@ function usePinchZoom({
   );
 
   const enableDragAndZoom = useCallback(() => {
-    setZoomInfo((state: ZoomInfo) => ({
-      ...state,
+    setZoomInfo({
+      ...zoomInfo,
       allowDragAndZoom: true,
-    }));
+    });
   }, []);
 
   const disableDragAndZoom = useCallback(() => {
-    setZoomInfo((state: ZoomInfo) => ({
-      ...state,
+    setZoomInfo({
+      ...zoomInfo,
       allowDragAndZoom: false,
-    }));
+    });
   }, []);
 
   const handleIncreaseZoom = useCallback(() => {
@@ -481,11 +473,7 @@ function usePinchZoom({
     const curTime = new Date().getTime();
     const tapLen = curTime - tapInfoRef.lastTap;
 
-    if (
-      tapLen < doubleTapSensivity &&
-      tapLen > 0 &&
-      zoomInfo.allowDragAndZoom
-    ) {
+    if (tapLen < doubleTapSensivity && tapLen > 0) {
       doubleTapped = true;
     } else {
       tapInfoRef.timeout = setTimeout(() => {
@@ -518,10 +506,6 @@ function usePinchZoom({
         zoomInfo.zoom
       );
 
-      zoomInfoRef.higherThanParent = higherThanParent;
-      zoomInfoRef.widderThanParent = widderThanParent;
-      zoomInfoRef.higherThanViewport = higherThanViewport;
-      zoomInfoRef.widderThanViewport = widderThanViewport;
       zoomInfoRef.isHigher = isHigher;
       zoomInfoRef.isWidder = isWidder;
 
@@ -529,10 +513,10 @@ function usePinchZoom({
         getDragBoundries({
           target: e.currentTarget as HTMLElement,
           zoom: zoomInfo.zoom,
-          higherThanParent: zoomInfoRef.higherThanParent,
-          widderThanParent: zoomInfoRef.widderThanParent,
-          higherThanViewport: zoomInfoRef.higherThanViewport,
-          widderThanViewport: zoomInfoRef.widderThanViewport,
+          higherThanParent,
+          widderThanParent,
+          higherThanViewport,
+          widderThanViewport,
         });
 
       zoomInfoRef.marginTop = marginTop;
@@ -569,8 +553,6 @@ function usePinchZoom({
     (e: React.TouchEvent) => {
       zoomInfoRef.target = e.currentTarget as HTMLElement;
 
-      zoomInfoRef.fingersStart = e.touches.length;
-
       zoomInfoRef.lastZoom = zoomInfo.zoom;
       zoomInfoRef.lastX = zoomInfo.transitionX;
       zoomInfoRef.lastY = zoomInfo.transitionY;
@@ -578,7 +560,8 @@ function usePinchZoom({
       const verticalShift = calculateVerticalShift(zoomInfoRef.target);
       const horizontalShift = calculateHorizontalShift(zoomInfoRef.target);
 
-      if (zoomInfoRef.fingersStart === 2) {
+      if (e.touches.length === 2) {
+        tapInfoRef.lastTap = 0; //prevent double tap with two fingers
         const fingerOne = e.touches[0];
         const fingerTwo = e.touches[1];
 
@@ -587,7 +570,6 @@ function usePinchZoom({
 
         const distance =
           e.touches.length === 2 &&
-          zoomInfoRef.fingersStart === 2 &&
           getDistanceBetweenFingers({
             fingerOne,
             fingerTwo,
@@ -611,17 +593,13 @@ function usePinchZoom({
           originY: startMidPointY,
         });
       }
-      if (zoomInfoRef.fingersStart === 1) {
+      if (e.touches.length === 1) {
         const fingerOne = e.touches[0];
 
         const startPointX = fingerOne.clientX;
         const startPointY = fingerOne.clientY;
 
-        const doubleTapped =
-          keepZoom &&
-          !disableDoubleTap &&
-          e.touches.length < 2 &&
-          detectDoubleTap();
+        const doubleTapped = keepZoom && !disableDoubleTap && detectDoubleTap();
 
         if (doubleTapped) {
           const startZoomPosX =
@@ -645,14 +623,17 @@ function usePinchZoom({
             maxZoom
           );
 
+          zoomInfoRef.isHigher = isHigher;
+          zoomInfoRef.isWidder = isWidder;
+
           const { marginTop, marginLeft, marginBottom, marginRight } =
             getDragBoundries({
               target: e.currentTarget as HTMLElement,
               zoom: maxZoom,
-              widderThanViewport: widderThanViewport,
-              higherThanViewport: higherThanViewport,
-              higherThanParent: higherThanParent,
-              widderThanParent: widderThanParent,
+              widderThanViewport,
+              higherThanViewport,
+              higherThanParent,
+              widderThanParent,
             });
 
           setZoomInfo({
@@ -690,10 +671,10 @@ function usePinchZoom({
             getDragBoundries({
               target: e.currentTarget as HTMLElement,
               zoom: zoomInfo.zoom,
-              widderThanViewport: widderThanViewport,
-              higherThanViewport: higherThanViewport,
-              higherThanParent: higherThanParent,
-              widderThanParent: widderThanParent,
+              widderThanViewport,
+              higherThanViewport,
+              higherThanParent,
+              widderThanParent,
             });
 
           zoomInfoRef.marginTop = marginTop;
@@ -705,7 +686,7 @@ function usePinchZoom({
 
           setZoomInfo({
             ...zoomInfo,
-            isDragging: true,
+            isDragging: zoomInfo.allowDragAndZoom ? true : false,
             isZooming: false,
             originX: startPointX,
             originY: startPointY,
@@ -713,7 +694,14 @@ function usePinchZoom({
         }
       }
     },
-    [zoomInfoRef, zoomInfo, detectDoubleTap, maxZoom, disableDoubleTap]
+    [
+      zoomInfoRef,
+      zoomInfo,
+      detectDoubleTap,
+      maxZoom,
+      disableDoubleTap,
+      tapInfoRef.lastTap,
+    ]
   );
 
   const onMouseMove = useCallback(
@@ -746,13 +734,22 @@ function usePinchZoom({
     (e: React.TouchEvent) => {
       if (e.touches.length > 2) return;
 
-      if (zoomInfo.isZooming) {
+      if (preventDefaultTouchBehavior) {
+        if (!zoomInfoRef.scrolled) {
+          if (e.touches.length === 1 && zoomInfo.zoom === 1)
+            zoomInfoRef.scrolled = true;
+          //If only one finger is touching the screen and the zoom value is 1, we can assume that the user is scrolling. When the user is scrolling, we want to lock the zoom.
+          if (zoomInfoRef.target)
+            zoomInfoRef.target.style.touchAction = "pan-y pan-x";
+        }
+      }
+
+      if (zoomInfo.isZooming && !zoomInfoRef.scrolled) {
         const fingerOne = e.touches[0];
         const fingerTwo = e.touches[1];
 
         const distance =
           e.touches.length === 2 &&
-          zoomInfoRef.fingersStart === 2 &&
           getDistanceBetweenFingers({
             fingerOne,
             fingerTwo,
@@ -829,10 +826,8 @@ function usePinchZoom({
               : 0,
 
             value:
-              e.targetTouches.length === 1 && zoomInfoRef.fingersStart === 1
-                ? zoomInfoRef.lastY +
-                  (fingerOne.clientY - state.originY) / state.zoom
-                : 0,
+              zoomInfoRef.lastY +
+              (fingerOne.clientY - state.originY) / state.zoom,
           }),
         }));
       }
@@ -844,38 +839,37 @@ function usePinchZoom({
       minDistBetweenFingers,
       zoomInfoRef,
       allowDragWhenZooming,
+      preventDefaultTouchBehavior,
     ]
   );
 
   const onTouchEnd = useCallback(() => {
-    const {
-      higherThanParent,
-      widderThanParent,
-      higherThanViewport,
-      widderThanViewport,
-      isHigher,
-      isWidder,
-    } = estimateOverflow(
-      relativeTo,
-      zoomInfoRef.target as HTMLElement,
-      zoomInfo.zoom
-    );
-
-    zoomInfoRef.higherThanParent = higherThanParent;
-    zoomInfoRef.widderThanParent = widderThanParent;
-    zoomInfoRef.higherThanViewport = higherThanViewport;
-    zoomInfoRef.widderThanViewport = widderThanViewport;
-
     if (zoomInfo.isZooming) {
+      const {
+        higherThanParent,
+        widderThanParent,
+        higherThanViewport,
+        widderThanViewport,
+        isHigher,
+        isWidder,
+      } = estimateOverflow(
+        relativeTo,
+        zoomInfoRef.target as HTMLElement,
+        zoomInfo.zoom
+      );
+
+      zoomInfoRef.isHigher = isHigher;
+      zoomInfoRef.isWidder = isWidder;
+
       zoomInfoRef.startDistance = 0;
       const { marginTop, marginLeft, marginBottom, marginRight } =
         getDragBoundries({
           target: zoomInfoRef.target as HTMLElement,
           zoom: zoomInfo.zoom,
-          higherThanViewport: zoomInfoRef.higherThanViewport,
-          widderThanViewport: zoomInfoRef.widderThanViewport,
-          higherThanParent: zoomInfoRef.higherThanParent,
-          widderThanParent: zoomInfoRef.widderThanParent,
+          higherThanViewport,
+          widderThanViewport,
+          higherThanParent,
+          widderThanParent,
         });
 
       zoomInfoRef.marginTop = marginTop;
@@ -906,11 +900,27 @@ function usePinchZoom({
         isDragging: false,
         isZooming: false,
         zoom: keepZoom ? state.zoom : zoomInfoRef.lastZoom,
-        transitionX: isWidder && keepZoom ? state.transitionX - overMarginX : 0,
-        transitionY: isHigher && keepZoom ? state.transitionY - overMarginY : 0,
+        transitionX:
+          zoomInfoRef.isWidder && keepZoom
+            ? state.transitionX - overMarginX
+            : 0,
+        transitionY:
+          zoomInfoRef.isHigher && keepZoom
+            ? state.transitionY - overMarginY
+            : 0,
       }));
     }
-  }, [zoomInfo, zoomInfoRef, keepZoom, relativeTo]);
+    if (preventDefaultTouchBehavior) {
+      zoomInfoRef.scrolled = false;
+      if (zoomInfoRef.target) zoomInfoRef.target.style.touchAction = "auto";
+    }
+  }, [
+    zoomInfo,
+    zoomInfoRef,
+    keepZoom,
+    relativeTo,
+    preventDefaultTouchBehavior,
+  ]);
 
   const onMouseWheel = useCallback(
     (e: React.WheelEvent) => {
@@ -975,6 +985,7 @@ function usePinchZoom({
     preventDefaultTouchBehavior,
     prevDefaultWheelBehavior,
     preventDefaultWheelBehavior,
+    zoomInfoRef.scrolled,
   ]);
 
   return {
