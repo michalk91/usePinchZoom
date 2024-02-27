@@ -18,6 +18,14 @@ export default function RelativeToBoth() {
     onMouseWheel,
   } = usePinchZoom({ maxZoom: 7, relativeTo: "both", zoomFactor: 20 });
 
+  const wrapperStyles: CSSProperties = {
+    height: "100vh",
+    width: "100vw",
+    maxHeight: "100%",
+    maxWidth: "100%",
+    overflow: "hidden",
+  };
+
   const containerStyles: CSSProperties = {
     display: "flex",
     width: "100vw",
@@ -64,7 +72,7 @@ export default function RelativeToBoth() {
   };
 
   return (
-    <>
+    <div style={wrapperStyles}>
       <section style={containerStyles}>
         <div style={imgContainerStyles}>
           <img
@@ -90,6 +98,6 @@ export default function RelativeToBoth() {
           </h1>
         </div>
       </section>
-    </>
+    </div>
   );
 }

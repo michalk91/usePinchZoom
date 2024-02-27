@@ -37,6 +37,7 @@ export default function RelativeToViewport() {
     height: "100vh",
     maxWidth: "100%",
     maxHeight: "100%",
+    overflow: "hidden",
   };
 
   const imgStyles: CSSProperties = {
