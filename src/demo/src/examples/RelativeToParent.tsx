@@ -47,7 +47,6 @@ export default function RelativeToParent() {
     maxHeight: "60vh",
     aspectRatio: "960/1280",
     overflow: "hidden",
-    // touchAction: " none",
   };
 
   const imgStyles: CSSProperties = {

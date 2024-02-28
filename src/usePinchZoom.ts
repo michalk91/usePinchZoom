@@ -175,7 +175,7 @@ const getLimitedValue = ({ min, max, value }: GetLimitedValue) =>
   Math.min(max, Math.max(value, min));
 
 const estimateOverflow = (
-  relativeTo: string,
+  relativeTo: "viewport" | "parent" | "both",
   target: HTMLElement,
   zoom: number
 ) => {
@@ -739,6 +739,7 @@ function usePinchZoom({
           if (e.touches.length === 1 && zoomInfo.zoom === 1)
             zoomInfoRef.scrolled = true;
           //If only one finger is touching the screen and the zoom value is 1, we can assume that the user is scrolling. When the user is scrolling, we want to lock the zoom.
+          tapInfoRef.lastTap = 0; //prevent double tapping while scrolling
           if (zoomInfoRef.target)
             zoomInfoRef.target.style.touchAction = "pan-y pan-x";
         }
@@ -985,7 +986,6 @@ function usePinchZoom({
     preventDefaultTouchBehavior,
     prevDefaultWheelBehavior,
     preventDefaultWheelBehavior,
-    zoomInfoRef.scrolled,
   ]);
 
   return {
