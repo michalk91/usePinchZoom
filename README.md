@@ -54,7 +54,7 @@ const {
 />
 ```
 
-3. By default, this function blocks native zooming and scrolling in the browser for the enlarged element (not the entire document). However, this can be disabled using the "preventDefaultTouchBehavior" and "preventDefaultWheelBehavior" properties.
+3. By default, this feature disables the browser's native zooming and scrolling during pinch zoom or drag when the zoom level is higher than 1. This means that when the zoom level is set to 1, you can still zoom on the page using native pinch zoom when your fingers are not on the element that supports this function. When the zoom level exceeds 1, the feature will prevent native zooming and scrolling of the entire document. However, this can be disabled using the "preventDefaultTouchBehavior" and "preventDefaultWheelBehavior" properties.
    
 4. If you want to disable native zooming and scrolling for the entire document or content, such as a modal, you can add the CSS style "touch-action: none" to the "body" tag or modal container. If you want to disable native pinch zoom but still be able to scroll vertically and horizontally, you can set "touch-action: pan-y pan-x".
  
