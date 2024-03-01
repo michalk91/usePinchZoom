@@ -30,18 +30,11 @@ export default function RelativeToParent() {
   };
 
   const navContainerStyles: CSSProperties = {
-    position: "fixed",
-    margin: "0 auto",
-    width: "100%",
     textAlign: "center",
-    left: "50%",
-    transform: "translateX(-50%)",
-    bottom: "35px",
-    zIndex: "10",
   };
 
   const imgContainerStyles: CSSProperties = {
-    margin: "180px auto 100px auto",
+    margin: "180px auto 30px auto",
     border: "3px solid black",
     maxWidth: "80vw",
     maxHeight: "60vh",
@@ -50,7 +43,6 @@ export default function RelativeToParent() {
   };
 
   const imgStyles: CSSProperties = {
-    alignSelf: "center",
     display: "block",
     height: "auto",
     width: "auto",
@@ -63,11 +55,6 @@ export default function RelativeToParent() {
   return (
     <>
       <div style={continerStyles}>
-        <div style={navContainerStyles}>
-          <button onClick={handleIncreaseZoom}> + </button>
-          <button onClick={handleDecreaseZoom}> - </button>
-          <button onClick={handleResetZoom}>reset </button>
-        </div>
         <div style={imgContainerStyles}>
           <img
             onMouseDown={onMouseDown}
@@ -78,6 +65,11 @@ export default function RelativeToParent() {
             style={imgStyles}
             src="https://cdn.pixabay.com/photo/2019/03/09/22/36/dog-4045119_1280.jpg"
           />
+        </div>
+        <div style={navContainerStyles}>
+          <button onClick={handleIncreaseZoom}> + </button>
+          <button onClick={handleDecreaseZoom}> - </button>
+          <button onClick={handleResetZoom}>reset </button>
         </div>
       </div>
     </>

@@ -42,32 +42,29 @@ export default function KeepZoomOff() {
   ];
 
   const wrapperStyles: CSSProperties = {
-    paddingTop: "150px",
-    position: "relative",
+    boxSizing: "border-box",
     width: "100vw",
     maxWidth: "100%",
     touchAction: "pan-y",
     overflow: "hidden",
+    paddingTop: "170px",
   };
 
   const containerStyles: CSSProperties = {
     display: "flex",
     width: "100%",
     flexDirection: "column",
-    justifyContent: "center",
     alignItems: "center",
+    marginBottom: "40px",
   };
 
   const imgContainerStyles: CSSProperties = {
-    position: "relative",
-    margin: "20px",
     aspectRatio: "1280/853",
     maxHeight: "100%",
   };
 
   const imgStyles: CSSProperties = {
     position: "relative",
-    alignSelf: "center",
     display: "block",
     height: "auto",
     width: "auto",
@@ -76,11 +73,9 @@ export default function KeepZoomOff() {
     transition: isDragging || isZooming ? "0s" : "0.3s",
   };
 
-  const textContainerStyles: CSSProperties = {
-    paddingLeft: "5%",
-    paddingRight: "5%",
-    paddingBottom: "2%",
-    flexBasis: "8%",
+  const textStyles: CSSProperties = {
+    fontSize: "1.1rem",
+    padding: "0 0.83em 0 0.83em ",
   };
 
   return (
@@ -95,10 +90,10 @@ export default function KeepZoomOff() {
               style={imgContainerStyles}
             >
               <img
-                onMouseDown={activeIndex === index ? onMouseDown : undefined}
-                onTouchMove={activeIndex === index ? onDraging : undefined}
-                onTouchEnd={activeIndex === index ? onTouchEnd : undefined}
-                onTouchStart={activeIndex === index ? onDragStart : undefined}
+                onMouseDown={onMouseDown}
+                onTouchMove={onDraging}
+                onTouchEnd={onTouchEnd}
+                onTouchStart={onDragStart}
                 style={{
                   zIndex: index === activeIndex ? 2 : 1,
                   transform:
@@ -112,17 +107,18 @@ export default function KeepZoomOff() {
               />
             </div>
 
-            <div style={textContainerStyles}>
-              <h1 style={{ margin: "0" }}>{item.text}</h1>
+            <div>
+              <h2 style={textStyles}>{item.text}</h2>
             </div>
           </article>
         ))}
-        <p style={{ textAlign: "center", padding: "5%" }}>
-          source:{" "}
-          <a href="https://www.thefactsite.com/instagram-facts">
-            https://www.thefactsite.com/instagram-facts
-          </a>
-        </p>
+
+        <a
+          style={textStyles}
+          href="https://www.thefactsite.com/instagram-facts"
+        >
+          source: https://www.thefactsite.com/instagram-facts
+        </a>
       </section>
     </>
   );

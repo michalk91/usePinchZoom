@@ -19,11 +19,13 @@ export default function RelativeToBoth() {
   } = usePinchZoom({ maxZoom: 7, relativeTo: "both", zoomFactor: 20 });
 
   const wrapperStyles: CSSProperties = {
+    boxSizing: "border-box",
     height: "100vh",
     width: "100vw",
     maxHeight: "100%",
     maxWidth: "100%",
     overflow: "hidden",
+    padding: "0 20px 0 20px",
   };
 
   const containerStyles: CSSProperties = {
@@ -33,30 +35,24 @@ export default function RelativeToBoth() {
     flexDirection: "column",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: "22vh",
+    marginTop: "17vh",
     height: "70vh",
   };
 
   const navContainerStyles: CSSProperties = {
     display: window.innerWidth < 600 ? "none" : "block",
-    position: "absolute",
-    margin: "10px auto 0 auto",
-    width: "100%",
-    left: "50%",
-    transform: "translateX(-50%)",
-    top: "100%",
+    position: "relative",
+    margin: "20px auto 0 auto",
     textAlign: "center",
   };
 
   const imgContainerStyles: CSSProperties = {
     position: "relative",
-    margin: "20px",
     aspectRatio: "1280/822",
     maxHeight: "100%",
   };
 
   const imgStyles: CSSProperties = {
-    alignSelf: "center",
     display: "block",
     height: "auto",
     width: "auto",
@@ -67,9 +63,11 @@ export default function RelativeToBoth() {
   };
 
   const textContainerStyles: CSSProperties = {
-    padding: "5%",
+    padding: "15px 0 15px 0",
     flexBasis: "8%",
   };
+
+  const textStyles = { fontSize: "1.3rem", margin: "0" };
 
   return (
     <div style={wrapperStyles}>
@@ -84,18 +82,18 @@ export default function RelativeToBoth() {
             style={imgStyles}
             src="https://cdn.pixabay.com/photo/2017/09/07/10/07/english-2724442_1280.jpg"
           />
+        </div>
+
+        <div style={textContainerStyles}>
+          <h2 style={textStyles}>
+            Four times more people speak English as a second language than as a
+            native one.
+          </h2>
           <div style={navContainerStyles}>
             <button onClick={handleIncreaseZoom}> + </button>
             <button onClick={handleDecreaseZoom}> - </button>
             <button onClick={handleResetZoom}>reset </button>
           </div>
-        </div>
-
-        <div style={textContainerStyles}>
-          <h1 style={{ margin: "0" }}>
-            Four times more people speak English as a second language than as a
-            native one.
-          </h1>
         </div>
       </section>
     </div>
