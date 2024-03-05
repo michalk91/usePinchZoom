@@ -373,17 +373,17 @@ function usePinchZoom({
   );
 
   const enableDragAndZoom = useCallback(() => {
-    setZoomInfo({
-      ...zoomInfo,
+    setZoomInfo((state) => ({
+      ...state,
       allowDragAndZoom: true,
-    });
+    }));
   }, []);
 
   const disableDragAndZoom = useCallback(() => {
-    setZoomInfo({
-      ...zoomInfo,
+    setZoomInfo((state) => ({
+      ...state,
       allowDragAndZoom: false,
-    });
+    }));
   }, []);
 
   const handleIncreaseZoom = useCallback(() => {
@@ -448,26 +448,19 @@ function usePinchZoom({
         value: state.transitionY,
       }),
     }));
-  }, [
-    maxZoom,
-    zoomFactor,
-    zoomInfoRef.target,
-    estimateOverflow,
-    getDragBoundries,
-    zoomInfo.zoom,
-  ]);
+  }, [maxZoom, zoomFactor, zoomInfoRef.target, zoomInfo.zoom, relativeTo]);
 
   const handleResetZoom = useCallback(() => {
-    setZoomInfo({
-      ...zoomInfo,
+    setZoomInfo((state) => ({
+      ...state,
       isDragging: false,
       isZooming: false,
       doubleTapped: false,
       zoom: 1,
       transitionX: 0,
       transitionY: 0,
-    });
-  }, [zoomInfo]);
+    }));
+  }, []);
 
   const detectDoubleTap = useCallback((): boolean => {
     let doubleTapped = false;
@@ -478,14 +471,14 @@ function usePinchZoom({
     if (tapLen < doubleTapSensivity && tapLen > 0) {
       doubleTapped = true;
     } else {
-      tapInfoRef.timeout = setTimeout(() => {
+      tapInfoRef.timeout = window.setTimeout(() => {
         clearTimeout(tapInfoRef.timeout);
       }, doubleTapSensivity);
     }
     tapInfoRef.lastTap = curTime;
 
     return doubleTapped;
-  }, [tapInfoRef, doubleTapSensivity, zoomInfo]);
+  }, [tapInfoRef, doubleTapSensivity]);
 
   const onMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -702,7 +695,9 @@ function usePinchZoom({
       detectDoubleTap,
       maxZoom,
       disableDoubleTap,
-      tapInfoRef.lastTap,
+      keepZoom,
+      relativeTo,
+      tapInfoRef,
     ]
   );
 
@@ -760,8 +755,8 @@ function usePinchZoom({
 
         const endDist = distance ? distance : 0;
 
-        const endMidPointX = (fingerOne.clientX + fingerTwo.clientX) / 2;
-        const endMidPointY = (fingerOne.clientY + fingerTwo.clientY) / 2;
+        const endMidPointX = (fingerOne?.clientX + fingerTwo?.clientX) / 2;
+        const endMidPointY = (fingerOne?.clientY + fingerTwo?.clientY) / 2;
 
         const currentZoom = getLimitedValue({
           min: 1,
@@ -844,6 +839,7 @@ function usePinchZoom({
       zoomInfoRef,
       allowDragWhenZooming,
       preventDefaultTouchBehavior,
+      tapInfoRef,
     ]
   );
 
