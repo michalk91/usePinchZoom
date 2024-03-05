@@ -359,6 +359,7 @@ function usePinchZoom({
   const prevDefaultPinchBehavior = useCallback(
     (e: TouchEvent) => {
       if (zoomInfo.isZooming || zoomInfo.zoom > 1) e.preventDefault();
+      e.stopPropagation();
     },
     [zoomInfo.isZooming, zoomInfo.zoom]
   );
@@ -366,6 +367,7 @@ function usePinchZoom({
   const prevDefaultWheelBehavior = useCallback(
     (e: WheelEvent) => {
       if (zoomInfo.zoom > 1) e.preventDefault();
+      e.stopPropagation();
     },
     [zoomInfo.zoom]
   );
@@ -740,8 +742,8 @@ function usePinchZoom({
             zoomInfoRef.scrolled = true;
           //If only one finger is touching the screen and the zoom value is 1, we can assume that the user is scrolling. When the user is scrolling, we want to lock the zoom.
           tapInfoRef.lastTap = 0; //prevent double tapping while scrolling
-          if (zoomInfoRef.target)
-            zoomInfoRef.target.style.touchAction = "pan-y pan-x";
+
+          document.body.style.touchAction = "pan-y pan-x";
         }
       }
 
@@ -761,23 +763,33 @@ function usePinchZoom({
         const endMidPointX = (fingerOne.clientX + fingerTwo.clientX) / 2;
         const endMidPointY = (fingerOne.clientY + fingerTwo.clientY) / 2;
 
+        const currentZoom = getLimitedValue({
+          min: 1,
+          max: maxZoom,
+          value:
+            zoomInfoRef.startDistance > minDistBetweenFingers
+              ? (zoomInfoRef.lastZoom * endDist) / zoomInfoRef.startDistance
+              : zoomInfo.zoom,
+        });
+
         const dx =
           (zoomInfoRef.startZoomPosX / zoomInfoRef.lastZoom -
-            zoomInfoRef.startZoomPosX / zoomInfo.zoom) /
+            zoomInfoRef.startZoomPosX / currentZoom) /
           zoomInfoRef.lastZoom;
 
         const dy =
           (zoomInfoRef.startZoomPosY / zoomInfoRef.lastZoom -
-            zoomInfoRef.startZoomPosY / zoomInfo.zoom) /
+            zoomInfoRef.startZoomPosY / currentZoom) /
           zoomInfoRef.lastZoom;
 
         setZoomInfo((state: ZoomInfo) => ({
           ...state,
+          zoom: currentZoom,
           transitionX:
             zoomInfoRef.startDistance > minDistBetweenFingers
               ? allowDragWhenZooming
                 ? zoomInfoRef.lastX +
-                  (endMidPointX - state.originX) / state.zoom +
+                  (endMidPointX - state.originX) / currentZoom +
                   dx
                 : zoomInfoRef.lastX + dx
               : state.transitionX,
@@ -785,19 +797,10 @@ function usePinchZoom({
             zoomInfoRef.startDistance > minDistBetweenFingers
               ? allowDragWhenZooming
                 ? zoomInfoRef.lastY +
-                  (endMidPointY - state.originY) / state.zoom +
+                  (endMidPointY - state.originY) / currentZoom +
                   dy
                 : zoomInfoRef.lastY + dy
               : state.transitionY,
-
-          zoom: getLimitedValue({
-            min: 1,
-            max: maxZoom,
-            value:
-              zoomInfoRef.startDistance > minDistBetweenFingers
-                ? (zoomInfoRef.lastZoom * endDist) / zoomInfoRef.startDistance
-                : state.zoom,
-          }),
         }));
       }
       if (zoomInfo.isDragging) {
@@ -913,7 +916,7 @@ function usePinchZoom({
     }
     if (preventDefaultTouchBehavior) {
       zoomInfoRef.scrolled = false;
-      if (zoomInfoRef.target) zoomInfoRef.target.style.touchAction = "auto";
+      document.body.style.touchAction = "auto";
     }
   }, [
     zoomInfo,
