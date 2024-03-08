@@ -358,29 +358,29 @@ function usePinchZoom({
 
   const prevDefaultPinchBehavior = useCallback(
     (e: TouchEvent) => {
-      if (zoomInfo.isZooming || zoomInfo.zoom > 1) e.preventDefault();
+      if (zoomInfo.isZooming || zoomInfoRef.lastZoom > 1) e.preventDefault();
       e.stopPropagation();
     },
-    [zoomInfo.isZooming, zoomInfo.zoom]
+    [zoomInfo.isZooming, zoomInfoRef.lastZoom]
   );
 
   const prevDefaultWheelBehavior = useCallback(
     (e: WheelEvent) => {
-      if (zoomInfo.zoom > 1) e.preventDefault();
+      if (zoomInfoRef.lastZoom > 1) e.preventDefault();
       e.stopPropagation();
     },
-    [zoomInfo.zoom]
+    [zoomInfoRef.lastZoom]
   );
 
   const enableDragAndZoom = useCallback(() => {
-    setZoomInfo((state) => ({
+    setZoomInfo((state: ZoomInfo) => ({
       ...state,
       allowDragAndZoom: true,
     }));
   }, []);
 
   const disableDragAndZoom = useCallback(() => {
-    setZoomInfo((state) => ({
+    setZoomInfo((state: ZoomInfo) => ({
       ...state,
       allowDragAndZoom: false,
     }));
@@ -451,7 +451,7 @@ function usePinchZoom({
   }, [maxZoom, zoomFactor, zoomInfoRef.target, zoomInfo.zoom, relativeTo]);
 
   const handleResetZoom = useCallback(() => {
-    setZoomInfo((state) => ({
+    setZoomInfo((state: ZoomInfo) => ({
       ...state,
       isDragging: false,
       isZooming: false,
@@ -724,7 +724,7 @@ function usePinchZoom({
           : 0,
       }));
     },
-    [zoomInfoRef, boundaryResistance, zoomInfo]
+    [zoomInfoRef, boundaryResistance, zoomInfo.isDragging]
   );
 
   const onDraging = useCallback(
@@ -733,7 +733,7 @@ function usePinchZoom({
 
       if (preventDefaultTouchBehavior) {
         if (!zoomInfoRef.scrolled) {
-          if (e.touches.length === 1 && zoomInfo.zoom === 1)
+          if (e.touches.length === 1 && zoomInfoRef.lastZoom === 1)
             zoomInfoRef.scrolled = true;
           //If only one finger is touching the screen and the zoom value is 1, we can assume that the user is scrolling. When the user is scrolling, we want to lock the zoom.
           tapInfoRef.lastTap = 0; //prevent double tapping while scrolling
@@ -758,45 +758,47 @@ function usePinchZoom({
         const endMidPointX = (fingerOne?.clientX + fingerTwo?.clientX) / 2;
         const endMidPointY = (fingerOne?.clientY + fingerTwo?.clientY) / 2;
 
-        const currentZoom = getLimitedValue({
-          min: 1,
-          max: maxZoom,
-          value:
-            zoomInfoRef.startDistance > minDistBetweenFingers
-              ? (zoomInfoRef.lastZoom * endDist) / zoomInfoRef.startDistance
-              : zoomInfo.zoom,
+        setZoomInfo((state: ZoomInfo) => {
+          const currentZoom = getLimitedValue({
+            min: 1,
+            max: maxZoom,
+            value:
+              zoomInfoRef.startDistance > minDistBetweenFingers
+                ? (zoomInfoRef.lastZoom * endDist) / zoomInfoRef.startDistance
+                : state.zoom,
+          });
+
+          const dx =
+            (zoomInfoRef.startZoomPosX / zoomInfoRef.lastZoom -
+              zoomInfoRef.startZoomPosX / currentZoom) /
+            zoomInfoRef.lastZoom;
+
+          const dy =
+            (zoomInfoRef.startZoomPosY / zoomInfoRef.lastZoom -
+              zoomInfoRef.startZoomPosY / currentZoom) /
+            zoomInfoRef.lastZoom;
+
+          return {
+            ...state,
+            zoom: currentZoom,
+            transitionX:
+              zoomInfoRef.startDistance > minDistBetweenFingers
+                ? allowDragWhenZooming
+                  ? zoomInfoRef.lastX +
+                    (endMidPointX - state.originX) / currentZoom +
+                    dx
+                  : zoomInfoRef.lastX + dx
+                : state.transitionX,
+            transitionY:
+              zoomInfoRef.startDistance > minDistBetweenFingers
+                ? allowDragWhenZooming
+                  ? zoomInfoRef.lastY +
+                    (endMidPointY - state.originY) / currentZoom +
+                    dy
+                  : zoomInfoRef.lastY + dy
+                : state.transitionY,
+          };
         });
-
-        const dx =
-          (zoomInfoRef.startZoomPosX / zoomInfoRef.lastZoom -
-            zoomInfoRef.startZoomPosX / currentZoom) /
-          zoomInfoRef.lastZoom;
-
-        const dy =
-          (zoomInfoRef.startZoomPosY / zoomInfoRef.lastZoom -
-            zoomInfoRef.startZoomPosY / currentZoom) /
-          zoomInfoRef.lastZoom;
-
-        setZoomInfo((state: ZoomInfo) => ({
-          ...state,
-          zoom: currentZoom,
-          transitionX:
-            zoomInfoRef.startDistance > minDistBetweenFingers
-              ? allowDragWhenZooming
-                ? zoomInfoRef.lastX +
-                  (endMidPointX - state.originX) / currentZoom +
-                  dx
-                : zoomInfoRef.lastX + dx
-              : state.transitionX,
-          transitionY:
-            zoomInfoRef.startDistance > minDistBetweenFingers
-              ? allowDragWhenZooming
-                ? zoomInfoRef.lastY +
-                  (endMidPointY - state.originY) / currentZoom +
-                  dy
-                : zoomInfoRef.lastY + dy
-              : state.transitionY,
-        }));
       }
       if (zoomInfo.isDragging) {
         const fingerOne = e.touches[0];
@@ -832,7 +834,8 @@ function usePinchZoom({
       }
     },
     [
-      zoomInfo,
+      zoomInfo.isZooming,
+      zoomInfo.isDragging,
       boundaryResistance,
       maxZoom,
       minDistBetweenFingers,
@@ -957,6 +960,16 @@ function usePinchZoom({
   useEffect(() => {
     document.addEventListener("mouseup", onTouchEnd);
     document.addEventListener("mousemove", onMouseMove);
+
+    return () => {
+      document.removeEventListener("mouseup", onTouchEnd);
+      document.removeEventListener("mousemove", onMouseMove);
+    };
+  }, [onTouchEnd, onMouseMove]);
+
+  useEffect(() => {
+    if (!preventDefaultTouchBehavior && !preventDefaultWheelBehavior) return;
+
     if (preventDefaultTouchBehavior) {
       document.addEventListener("touchmove", prevDefaultPinchBehavior, {
         passive: false,
@@ -967,10 +980,7 @@ function usePinchZoom({
         passive: false,
       });
     }
-
     return () => {
-      document.removeEventListener("mouseup", onTouchEnd);
-      document.removeEventListener("mousemove", onMouseMove);
       if (preventDefaultTouchBehavior) {
         document.removeEventListener("touchmove", prevDefaultPinchBehavior);
       }
@@ -979,8 +989,6 @@ function usePinchZoom({
       }
     };
   }, [
-    onTouchEnd,
-    onMouseMove,
     prevDefaultPinchBehavior,
     preventDefaultTouchBehavior,
     prevDefaultWheelBehavior,
