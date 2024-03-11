@@ -417,12 +417,7 @@ function usePinchZoom({
 
       return {
         ...state,
-        isDragging: false,
-        doubleTapped: false,
-        isZooming: false,
         zoom: currentZoom,
-        transitionY: state.wheeled ? zoomInfoRef.lastY : state.transitionY,
-        transitionX: state.wheeled ? zoomInfoRef.lastX : state.transitionX,
       };
     });
   }, [maxZoom, zoomFactor, zoomInfoRef]);
@@ -436,10 +431,6 @@ function usePinchZoom({
       });
 
       zoomInfoRef.lastZoom = currentZoom;
-      if (currentZoom === 1) {
-        zoomInfoRef.lastX = 0;
-        zoomInfoRef.lastY = 0;
-      }
 
       let marLeft = 0,
         marRight = 0,
@@ -476,12 +467,12 @@ function usePinchZoom({
         transitionX: getLimitedValue({
           min: marRight > 0 ? -marRight : 0,
           max: marLeft > 0 ? marLeft : 0,
-          value: state.wheeled ? zoomInfoRef.lastX : state.transitionX,
+          value: state.transitionX,
         }),
         transitionY: getLimitedValue({
           min: marBottom > 0 ? -marBottom : 0,
           max: marTop > 0 ? marTop : 0,
-          value: state.wheeled ? zoomInfoRef.lastY : state.transitionY,
+          value: state.transitionY,
         }),
       };
     });
@@ -493,11 +484,14 @@ function usePinchZoom({
       isDragging: false,
       isZooming: false,
       doubleTapped: false,
+      wheeled: false,
       zoom: 1,
       transitionX: 0,
       transitionY: 0,
     }));
     zoomInfoRef.lastZoom = 1;
+    zoomInfoRef.lastX = 0;
+    zoomInfoRef.lastY = 0;
   }, [zoomInfoRef]);
 
   const detectDoubleTap = useCallback((): boolean => {
@@ -939,9 +933,7 @@ function usePinchZoom({
         ...state,
         doubleTapped: false,
       }));
-    }
-
-    if (!zoomInfo.doubleTapped) {
+    } else if (!zoomInfo.doubleTapped && !zoomInfo.wheeled) {
       setZoomInfo((state: ZoomInfo) => ({
         ...state,
         isDragging: false,
@@ -979,7 +971,7 @@ function usePinchZoom({
       if (!isHigher) return;
 
       const { marginTop, marginBottom } = getDragBoundries({
-        target: e.currentTarget as HTMLElement,
+        target: zoomInfoRef.target,
         zoom: zoomInfoRef.lastZoom,
         higherThanViewport,
         widderThanViewport: false,
@@ -993,8 +985,6 @@ function usePinchZoom({
           min: -marginBottom,
           value: state.transitionY - e.deltaY / state.zoom,
         });
-
-        zoomInfoRef.lastY = currentTransitionY;
 
         return {
           ...state,
