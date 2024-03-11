@@ -62,6 +62,7 @@ interface ZoomInfo {
   isDragging: boolean;
   isZooming: boolean;
   doubleTapped: boolean;
+  wheeled: boolean;
   originX: number;
   originY: number;
   transitionX: number;
@@ -327,6 +328,7 @@ function usePinchZoom({
     isDragging: false,
     isZooming: false,
     doubleTapped: false,
+    wheeled: false,
     originX: 0,
     originY: 0,
     transitionX: 0,
@@ -419,7 +421,8 @@ function usePinchZoom({
         doubleTapped: false,
         isZooming: false,
         zoom: currentZoom,
-        transitionY: zoomInfoRef.lastY,
+        transitionY: state.wheeled ? zoomInfoRef.lastY : state.transitionY,
+        transitionX: state.wheeled ? zoomInfoRef.lastX : state.transitionX,
       };
     });
   }, [maxZoom, zoomFactor, zoomInfoRef]);
@@ -473,12 +476,12 @@ function usePinchZoom({
         transitionX: getLimitedValue({
           min: marRight > 0 ? -marRight : 0,
           max: marLeft > 0 ? marLeft : 0,
-          value: zoomInfoRef.lastX,
+          value: state.wheeled ? zoomInfoRef.lastX : state.transitionX,
         }),
         transitionY: getLimitedValue({
           min: marBottom > 0 ? -marBottom : 0,
           max: marTop > 0 ? marTop : 0,
-          value: zoomInfoRef.lastY,
+          value: state.wheeled ? zoomInfoRef.lastY : state.transitionY,
         }),
       };
     });
@@ -563,6 +566,7 @@ function usePinchZoom({
 
       setZoomInfo((state: ZoomInfo) => ({
         ...state,
+        wheeled: false,
         isDragging: state.allowDragAndZoom ? true : false,
         originX: currentPosX,
         originY: currentPosY,
@@ -619,6 +623,7 @@ function usePinchZoom({
 
         setZoomInfo({
           ...zoomInfo,
+          wheeled: false,
           isZooming: zoomInfo.allowDragAndZoom ? true : false,
           isDragging: false,
           originX: startMidPointX,
@@ -670,6 +675,7 @@ function usePinchZoom({
 
           setZoomInfo({
             ...zoomInfo,
+            wheeled: false,
             doubleTapped: true,
             isDragging: false,
             isZooming: false,
@@ -718,6 +724,7 @@ function usePinchZoom({
 
           setZoomInfo({
             ...zoomInfo,
+            wheeled: false,
             isDragging: zoomInfo.allowDragAndZoom ? true : false,
             isZooming: false,
             originX: startPointX,
@@ -967,11 +974,8 @@ function usePinchZoom({
       zoomInfoRef.target = e.currentTarget as HTMLElement;
 
       const { higherThanParent, higherThanViewport, isHigher } =
-        estimateOverflow(
-          relativeTo,
-          e.currentTarget as HTMLElement,
-          zoomInfoRef.lastZoom
-        );
+        estimateOverflow(relativeTo, zoomInfoRef.target, zoomInfoRef.lastZoom);
+
       if (!isHigher) return;
 
       const { marginTop, marginBottom } = getDragBoundries({
@@ -994,6 +998,7 @@ function usePinchZoom({
 
         return {
           ...state,
+          wheeled: true,
           transitionY: currentTransitionY,
         };
       });
