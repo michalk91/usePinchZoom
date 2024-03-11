@@ -358,16 +358,33 @@ function usePinchZoom({
 
   const prevDefaultPinchBehavior = useCallback(
     (e: TouchEvent) => {
-      if (zoomInfo.isZooming || zoomInfoRef.lastZoom > 1) e.preventDefault();
-      e.stopPropagation();
+      if (
+        zoomInfo.isZooming ||
+        (zoomInfo.isDragging && zoomInfoRef.lastZoom > 1)
+      ) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
     },
-    [zoomInfo.isZooming, zoomInfoRef.lastZoom]
+    [zoomInfo.isZooming, zoomInfoRef.lastZoom, zoomInfo.isDragging]
   );
+
+  const prevDefaultPinchTouchStart = useCallback(
+    (e: TouchEvent) => {
+      if (zoomInfo.isZooming) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    },
+    [zoomInfo.isZooming]
+  ); //In Safari, to block native pinch zoom, you need to call preventDefault on touchstart as well.
 
   const prevDefaultWheelBehavior = useCallback(
     (e: WheelEvent) => {
-      if (zoomInfoRef.lastZoom > 1) e.preventDefault();
-      e.stopPropagation();
+      if (zoomInfoRef.lastZoom > 1) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
     },
     [zoomInfoRef.lastZoom]
   );
@@ -387,68 +404,85 @@ function usePinchZoom({
   }, []);
 
   const handleIncreaseZoom = useCallback(() => {
-    setZoomInfo((state: ZoomInfo) => ({
-      ...state,
-      isDragging: false,
-      doubleTapped: false,
-      isZooming: false,
-      zoom: getLimitedValue({
+    setZoomInfo((state: ZoomInfo) => {
+      const currentZoom = getLimitedValue({
         min: 1,
         max: maxZoom,
         value: state.zoom + maxZoom / zoomFactor,
-      }),
-    }));
-  }, [maxZoom, zoomFactor]);
+      });
+
+      zoomInfoRef.lastZoom = currentZoom;
+
+      return {
+        ...state,
+        isDragging: false,
+        doubleTapped: false,
+        isZooming: false,
+        zoom: currentZoom,
+        transitionY: zoomInfoRef.lastY,
+      };
+    });
+  }, [maxZoom, zoomFactor, zoomInfoRef]);
 
   const handleDecreaseZoom = useCallback(() => {
-    let marLeft = 0,
-      marRight = 0,
-      marTop = 0,
-      marBottom = 0;
+    setZoomInfo((state: ZoomInfo) => {
+      const currentZoom = getLimitedValue({
+        min: 1,
+        max: maxZoom,
+        value: state.zoom - maxZoom / zoomFactor,
+      });
 
-    if (zoomInfoRef.target) {
-      const {
-        higherThanParent,
-        widderThanParent,
-        higherThanViewport,
-        widderThanViewport,
-      } = estimateOverflow(relativeTo, zoomInfoRef.target, zoomInfo.zoom);
+      zoomInfoRef.lastZoom = currentZoom;
+      if (currentZoom === 1) {
+        zoomInfoRef.lastX = 0;
+        zoomInfoRef.lastY = 0;
+      }
 
-      const { marginTop, marginLeft, marginBottom, marginRight } =
-        getDragBoundries({
-          target: zoomInfoRef.target,
-          zoom: zoomInfo.zoom - maxZoom / zoomFactor,
+      let marLeft = 0,
+        marRight = 0,
+        marTop = 0,
+        marBottom = 0;
+
+      if (zoomInfoRef.target) {
+        const {
           higherThanParent,
           widderThanParent,
           higherThanViewport,
           widderThanViewport,
-        });
+        } = estimateOverflow(relativeTo, zoomInfoRef.target, currentZoom);
 
-      marTop = isFinite(marginTop) ? marginTop : 0;
-      marBottom = isFinite(marginBottom) ? marginBottom : 0;
-      marLeft = isFinite(marginLeft) ? marginLeft : 0;
-      marRight = isFinite(marginRight) ? marginRight : 0;
-    }
+        const { marginTop, marginLeft, marginBottom, marginRight } =
+          getDragBoundries({
+            target: zoomInfoRef.target,
+            zoom: currentZoom,
+            higherThanParent,
+            widderThanParent,
+            higherThanViewport,
+            widderThanViewport,
+          });
 
-    setZoomInfo((state: ZoomInfo) => ({
-      ...state,
-      zoom: getLimitedValue({
-        min: 1,
-        max: maxZoom,
-        value: state.zoom - maxZoom / zoomFactor,
-      }),
-      transitionX: getLimitedValue({
-        min: marRight > 0 ? -marRight : 0,
-        max: marLeft > 0 ? marLeft : 0,
-        value: state.transitionX,
-      }),
-      transitionY: getLimitedValue({
-        min: marBottom > 0 ? -marBottom : 0,
-        max: marTop > 0 ? marTop : 0,
-        value: state.transitionY,
-      }),
-    }));
-  }, [maxZoom, zoomFactor, zoomInfoRef.target, zoomInfo.zoom, relativeTo]);
+        marTop = marginTop;
+        marBottom = marginBottom;
+        marLeft = marginLeft;
+        marRight = marginRight;
+      }
+
+      return {
+        ...state,
+        zoom: currentZoom,
+        transitionX: getLimitedValue({
+          min: marRight > 0 ? -marRight : 0,
+          max: marLeft > 0 ? marLeft : 0,
+          value: zoomInfoRef.lastX,
+        }),
+        transitionY: getLimitedValue({
+          min: marBottom > 0 ? -marBottom : 0,
+          max: marTop > 0 ? marTop : 0,
+          value: zoomInfoRef.lastY,
+        }),
+      };
+    });
+  }, [maxZoom, zoomFactor, zoomInfoRef, relativeTo]);
 
   const handleResetZoom = useCallback(() => {
     setZoomInfo((state: ZoomInfo) => ({
@@ -460,7 +494,8 @@ function usePinchZoom({
       transitionX: 0,
       transitionY: 0,
     }));
-  }, []);
+    zoomInfoRef.lastZoom = 1;
+  }, [zoomInfoRef]);
 
   const detectDoubleTap = useCallback((): boolean => {
     let doubleTapped = false;
@@ -546,6 +581,8 @@ function usePinchZoom({
 
   const onDragStart = useCallback(
     (e: React.TouchEvent) => {
+      if (e.touches.length > 2) return;
+
       zoomInfoRef.target = e.currentTarget as HTMLElement;
 
       zoomInfoRef.lastZoom = zoomInfo.zoom;
@@ -927,34 +964,42 @@ function usePinchZoom({
 
   const onMouseWheel = useCallback(
     (e: React.WheelEvent) => {
+      zoomInfoRef.target = e.currentTarget as HTMLElement;
+
       const { higherThanParent, higherThanViewport, isHigher } =
         estimateOverflow(
           relativeTo,
           e.currentTarget as HTMLElement,
-          zoomInfo.zoom
+          zoomInfoRef.lastZoom
         );
       if (!isHigher) return;
 
       const { marginTop, marginBottom } = getDragBoundries({
         target: e.currentTarget as HTMLElement,
-        zoom: zoomInfo.zoom,
+        zoom: zoomInfoRef.lastZoom,
         higherThanViewport,
         widderThanViewport: false,
         widderThanParent: false,
         higherThanParent,
       });
 
-      setZoomInfo((state: ZoomInfo) => ({
-        ...state,
-        transitionY: getLimitedValue({
+      setZoomInfo((state: ZoomInfo) => {
+        const currentTransitionY = getLimitedValue({
           max: marginTop,
           min: -marginBottom,
           value: state.transitionY - e.deltaY / state.zoom,
-        }),
-      }));
+        });
+
+        zoomInfoRef.lastY = currentTransitionY;
+
+        return {
+          ...state,
+          transitionY: currentTransitionY,
+        };
+      });
     },
 
-    [zoomInfo.zoom, relativeTo]
+    [zoomInfoRef, relativeTo]
   );
 
   useEffect(() => {
@@ -971,6 +1016,9 @@ function usePinchZoom({
     if (!preventDefaultTouchBehavior && !preventDefaultWheelBehavior) return;
 
     if (preventDefaultTouchBehavior) {
+      document.addEventListener("touchstart", prevDefaultPinchTouchStart, {
+        passive: false,
+      });
       document.addEventListener("touchmove", prevDefaultPinchBehavior, {
         passive: false,
       });
@@ -982,6 +1030,7 @@ function usePinchZoom({
     }
     return () => {
       if (preventDefaultTouchBehavior) {
+        document.removeEventListener("touchstart", prevDefaultPinchTouchStart);
         document.removeEventListener("touchmove", prevDefaultPinchBehavior);
       }
       if (preventDefaultWheelBehavior) {
@@ -993,6 +1042,7 @@ function usePinchZoom({
     preventDefaultTouchBehavior,
     prevDefaultWheelBehavior,
     preventDefaultWheelBehavior,
+    prevDefaultPinchTouchStart,
   ]);
 
   return {
